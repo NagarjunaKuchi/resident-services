@@ -5,11 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.http.ResponseWrapper;
 import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.resident.dto.AuditRequestDTO;
-import io.mosip.resident.util.AuditResponseDto;
-import io.mosip.resident.util.AuditUtil;
-import io.mosip.resident.util.EventEnum;
-import io.mosip.resident.util.TokenGenerator;
+import io.mosip.tf.packet.dto.AuditRequestDTO;
+import io.mosip.tf.packet.util.AuditResponseDto;
+import io.mosip.tf.packet.util.AuditUtil;
+import io.mosip.tf.packet.util.EventEnum;
+import io.mosip.tf.packet.util.TokenGenerator;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

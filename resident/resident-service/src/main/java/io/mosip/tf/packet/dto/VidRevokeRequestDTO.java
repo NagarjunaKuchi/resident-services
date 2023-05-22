@@ -1,0 +1,22 @@
+package io.mosip.tf.packet.dto;
+
+import java.io.Serializable;
+
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
+@Data
+@Getter
+@Setter
+public class VidRevokeRequestDTO implements Serializable {
+
+	
+	private static final long serialVersionUID = 1L;
+	
+	private String transactionID;
+	private String individualId;
+	private String individualIdType;
+	private String otp;
+	private String vidStatus;
+}

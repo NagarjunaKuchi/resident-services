@@ -6,9 +6,10 @@ import io.mosip.commons.packet.exception.PacketDecryptionFailureException;
 import io.mosip.kernel.core.exception.ServiceError;
 import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.resident.dto.CryptomanagerRequestDto;
-import io.mosip.resident.util.EncryptorUtil;
-import io.mosip.resident.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.dto.CryptomanagerRequestDto;
+import io.mosip.tf.packet.util.EncryptorUtil;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,7 +74,7 @@ public class EncryptorUtilTest {
         String encryptedData = "ew0KCSJpZGVudGl0eSI6IHsNCgkJImRhdGVPZkJpcnRoIjogIjE5NzgvMDEvMDEiLA0KCQkiSURTY2hlbWFWZXJzaW9uIjogMC4xLA0KCQkiVUlOIjogIjkzNDIzNjEwMzgiDQoJfQ0KfQ";
         DecryptResponseDto decryptResponseDto = new DecryptResponseDto();
         decryptResponseDto.setData(encryptedData);
-        io.mosip.resident.dto.ResponseWrapper<DecryptResponseDto> responseWrapper = new io.mosip.resident.dto.ResponseWrapper<>();
+        io.mosip.tf.packet.dto.ResponseWrapper<DecryptResponseDto> responseWrapper = new io.mosip.tf.packet.dto.ResponseWrapper<>();
         responseWrapper.setResponse(decryptResponseDto);
         String encryptedJsonString = "{\n" +
                 "\"data\": " + encryptedData +
@@ -111,7 +112,7 @@ public class EncryptorUtilTest {
     public void throwPacketDecryptionFailureExceptionTest() throws Exception {
         List<ServiceError> errors = new ArrayList<>();
         errors.add(new ServiceError());
-        io.mosip.resident.dto.ResponseWrapper<DecryptResponseDto> responseWrapper = new io.mosip.resident.dto.ResponseWrapper<>();
+        io.mosip.tf.packet.dto.ResponseWrapper<DecryptResponseDto> responseWrapper = new io.mosip.tf.packet.dto.ResponseWrapper<>();
         responseWrapper.setErrors(errors);
 
         when(env.getProperty(Mockito.anyString())).thenReturn(encryptAPIUrl);

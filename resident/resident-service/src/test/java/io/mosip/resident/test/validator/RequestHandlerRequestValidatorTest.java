@@ -23,20 +23,20 @@ import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.http.ResponseWrapper;
 import io.mosip.kernel.core.idvalidator.spi.UinValidator;
 import io.mosip.kernel.core.idvalidator.spi.VidValidator;
-import io.mosip.resident.constant.CardType;
-import io.mosip.resident.dto.LogDescription;
-import io.mosip.resident.dto.MachineDto;
-import io.mosip.resident.dto.MachineResponseDto;
-import io.mosip.resident.dto.RegistrationCenterDto;
-import io.mosip.resident.dto.RegistrationCenterResponseDto;
-import io.mosip.resident.dto.RegistrationType;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.exception.IdRepoAppException;
-import io.mosip.resident.exception.RequestHandlerValidationException;
-import io.mosip.resident.util.ResidentServiceRestClient;
-import io.mosip.resident.util.TokenGenerator;
-import io.mosip.resident.util.Utilities;
-import io.mosip.resident.validator.RequestHandlerRequestValidator;
+import io.mosip.tf.packet.constant.CardType;
+import io.mosip.tf.packet.dto.LogDescription;
+import io.mosip.tf.packet.dto.MachineDto;
+import io.mosip.tf.packet.dto.MachineResponseDto;
+import io.mosip.tf.packet.dto.RegistrationCenterDto;
+import io.mosip.tf.packet.dto.RegistrationCenterResponseDto;
+import io.mosip.tf.packet.dto.RegistrationType;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.exception.IdRepoAppException;
+import io.mosip.tf.packet.exception.RequestHandlerValidationException;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.util.TokenGenerator;
+import io.mosip.tf.packet.util.Utilities;
+import io.mosip.tf.packet.validator.RequestHandlerRequestValidator;
 
 @RunWith(SpringRunner.class)
 public class RequestHandlerRequestValidatorTest {

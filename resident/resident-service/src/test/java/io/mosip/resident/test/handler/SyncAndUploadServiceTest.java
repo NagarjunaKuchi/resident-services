@@ -6,10 +6,11 @@ import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.util.DateUtils;
 import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
-import io.mosip.resident.dto.*;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.handler.service.SyncAndUploadService;
-import io.mosip.resident.util.*;
+import io.mosip.tf.packet.dto.*;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.handler.service.SyncAndUploadService;
+import io.mosip.tf.packet.util.*;
+
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;

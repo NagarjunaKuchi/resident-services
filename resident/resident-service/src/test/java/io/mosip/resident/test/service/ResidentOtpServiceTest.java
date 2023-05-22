@@ -1,14 +1,15 @@
 package io.mosip.resident.test.service;
 
-import io.mosip.resident.constant.ApiName;
-import io.mosip.resident.dto.OtpRequestDTO;
-import io.mosip.resident.dto.OtpResponseDTO;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.exception.ResidentServiceException;
-import io.mosip.resident.service.ResidentOtpService;
-import io.mosip.resident.service.impl.ResidentOtpServiceImpl;
-import io.mosip.resident.util.AuditUtil;
-import io.mosip.resident.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.constant.ApiName;
+import io.mosip.tf.packet.dto.OtpRequestDTO;
+import io.mosip.tf.packet.dto.OtpResponseDTO;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.exception.ResidentServiceException;
+import io.mosip.tf.packet.service.ResidentOtpService;
+import io.mosip.tf.packet.service.impl.ResidentOtpServiceImpl;
+import io.mosip.tf.packet.util.AuditUtil;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

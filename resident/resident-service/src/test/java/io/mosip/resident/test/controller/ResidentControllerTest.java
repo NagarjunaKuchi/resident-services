@@ -4,9 +4,7 @@
 package io.mosip.resident.test.controller;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,33 +40,23 @@ import com.google.gson.GsonBuilder;
 
 import io.mosip.kernel.cbeffutil.impl.CbeffImpl;
 import io.mosip.kernel.core.crypto.spi.CryptoCoreSpec;
-import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.resident.constant.IdType;
-import io.mosip.resident.controller.ResidentController;
-import io.mosip.resident.dto.AuthHistoryRequestDTO;
-import io.mosip.resident.dto.AuthHistoryResponseDTO;
-import io.mosip.resident.dto.AuthLockOrUnLockRequestDto;
-import io.mosip.resident.dto.EuinRequestDTO;
-import io.mosip.resident.dto.RegStatusCheckResponseDTO;
-import io.mosip.resident.dto.RequestWrapper;
-import io.mosip.resident.dto.ResidentDocuments;
-import io.mosip.resident.dto.ResidentReprintRequestDto;
-import io.mosip.resident.dto.ResidentReprintResponseDto;
-import io.mosip.resident.dto.ResidentUpdateRequestDto;
-import io.mosip.resident.dto.ResidentUpdateResponseDTO;
-import io.mosip.resident.dto.ResponseDTO;
-import io.mosip.resident.dto.ResponseWrapper;
-import io.mosip.resident.service.ResidentService;
 import io.mosip.resident.test.ResidentTestBootApplication;
-import io.mosip.resident.util.AuditUtil;
-import io.mosip.resident.validator.RequestValidator;
+import io.mosip.tf.packet.constant.IdType;
+import io.mosip.tf.packet.controller.PacketController;
+import io.mosip.tf.packet.dto.AuthHistoryRequestDTO;
+import io.mosip.tf.packet.dto.AuthLockOrUnLockRequestDto;
+import io.mosip.tf.packet.dto.EuinRequestDTO;
+import io.mosip.tf.packet.dto.RegStatusCheckResponseDTO;
+import io.mosip.tf.packet.dto.RequestWrapper;
+import io.mosip.tf.packet.dto.ResidentDocuments;
+import io.mosip.tf.packet.dto.PacketCreateRequestDto;
+import io.mosip.tf.packet.dto.ResidentUpdateResponseDTO;
+import io.mosip.tf.packet.service.PacketCreatorService;
+import io.mosip.tf.packet.util.AuditUtil;
+import io.mosip.tf.packet.validator.RequestValidator;
+
 import org.springframework.web.client.RestTemplate;
 
-/**
- * @author Sowmya Ujjappa Banakar
- * @author Jyoti Prakash Nayak
- *
- */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = ResidentTestBootApplication.class)
 @AutoConfigureMockMvc
@@ -76,7 +64,7 @@ import org.springframework.web.client.RestTemplate;
 public class ResidentControllerTest {
 
 	@MockBean
-	private ResidentService residentService;
+	private PacketCreatorService residentService;
 
 	@Mock
 	CbeffImpl cbeff;
@@ -95,7 +83,7 @@ public class ResidentControllerTest {
 	private RestTemplate residentRestTemplate;
 
 	@InjectMocks
-    ResidentController residentController;
+    PacketController residentController;
 
 	RequestWrapper<AuthLockOrUnLockRequestDto> authLockRequest;
 	RequestWrapper<EuinRequestDTO> euinRequest;
@@ -103,8 +91,6 @@ public class ResidentControllerTest {
 
 	/** The array to json. */
 	private String authLockRequestToJson;
-	private String euinRequestToJson;
-	private String historyRequestToJson;
 	private Gson gson;
 
 	/** The mock mvc. */
@@ -131,7 +117,6 @@ public class ResidentControllerTest {
 
 		gson = new GsonBuilder().serializeNulls().create();
 		authLockRequestToJson = gson.toJson(authLockRequest);
-		euinRequestToJson = gson.toJson(euinRequest);
 		Mockito.doNothing().when(audit).setAuditRequestDto(Mockito.any());
 
 	}
@@ -148,43 +133,6 @@ public class ResidentControllerTest {
 				.andExpect(status().isOk()).andExpect(jsonPath("$.response.ridStatus", is("PROCESSED")));
 	}
 
-	@Test
-	@WithUserDetails("resident")
-	public void testRequestAuthLockSuccess() throws Exception {
-		ResponseDTO responseDto = new ResponseDTO();
-		responseDto.setStatus("success");
-		doNothing().when(validator).validateAuthLockOrUnlockRequest(Mockito.any(), Mockito.any());
-		Mockito.doReturn(responseDto).when(residentService).reqAauthTypeStatusUpdate(Mockito.any(), Mockito.any());
-
-		this.mockMvc
-				.perform(post("/req/auth-lock").contentType(MediaType.APPLICATION_JSON).content(authLockRequestToJson))
-				.andExpect(status().isOk()).andExpect(jsonPath("$.response.status", is("success")));
-	}
-
-	@Test
-	@WithUserDetails("resident")
-	public void testRequestAuthLockBadRequest() throws Exception {
-		ResponseDTO responseDto = new ResponseDTO();
-		doNothing().when(validator).validateAuthLockOrUnlockRequest(Mockito.any(), Mockito.any());
-		Mockito.doReturn(responseDto).when(residentService).reqAauthTypeStatusUpdate(Mockito.any(), Mockito.any());
-
-		MvcResult result = this.mockMvc
-				.perform(post("/req/auth-lock").contentType(MediaType.APPLICATION_JSON).content(""))
-				.andExpect(status().isOk()).andReturn();
-		assertTrue(result.getResponse().getContentAsString().contains("RES-SER-418"));
-	}
-
-	@Test
-	@WithUserDetails("resident")
-	public void testRequestEuinSuccess() throws Exception {
-		doNothing().when(validator).validateEuinRequest(Mockito.any());
-		Mockito.doReturn(new byte[10]).when(residentService).reqEuin(Mockito.any());
-
-		MvcResult result = this.mockMvc
-				.perform(post("/req/euin").contentType(MediaType.APPLICATION_JSON).content(euinRequestToJson))
-				.andExpect(status().isOk()).andReturn();
-		assertEquals("application/pdf", result.getResponse().getContentType());
-	}
 
 	@Test
 	@WithUserDetails("resident")
@@ -195,85 +143,6 @@ public class ResidentControllerTest {
 		assertTrue(result.getResponse().getContentAsString().contains("RES-SER-418"));
 	}
 
-	@Test
-	@WithUserDetails("resident")
-	public void testReprintUINSuccess() throws Exception {
-		ResidentReprintResponseDto reprintResp = new ResidentReprintResponseDto();
-		reprintResp.setRegistrationId("123456789");
-		reprintResp.setMessage("Notification sent");
-		ResponseWrapper<ResidentReprintResponseDto> response = new ResponseWrapper<>();
-		response.setResponse(reprintResp);
-
-		Mockito.when(residentService.reqPrintUin(Mockito.any())).thenReturn(reprintResp);
-
-		RequestWrapper<ResidentReprintRequestDto> requestWrapper = new RequestWrapper<>();
-		ResidentReprintRequestDto request = new ResidentReprintRequestDto();
-		request.setIndividualId("3527812406");
-		request.setIndividualIdType(IdType.UIN.name());
-		request.setOtp("1234");
-		request.setTransactionID("9876543210");
-		requestWrapper.setRequest(request);
-		requestWrapper.setId(",osip.resident.reprint");
-		requestWrapper.setVersion("1.0");
-		requestWrapper.setRequesttime(DateUtils.getUTCCurrentDateTimeString());
-
-		Gson gson = new GsonBuilder().serializeNulls().create();
-		String requestAsString = gson.toJson(requestWrapper);
-
-		this.mockMvc.perform(post("/req/print-uin").contentType(MediaType.APPLICATION_JSON).content(requestAsString))
-				.andExpect(status().isOk());
-	}
-
-	@Test
-	@WithUserDetails("reg-admin")
-	public void testRequestAuthUnLockSuccess() throws Exception {
-		ResponseDTO responseDto = new ResponseDTO();
-		responseDto.setStatus("success");
-		doNothing().when(validator).validateAuthLockOrUnlockRequest(Mockito.any(), Mockito.any());
-		Mockito.doReturn(responseDto).when(residentService).reqAauthTypeStatusUpdate(Mockito.any(), Mockito.any());
-
-		this.mockMvc
-				.perform(
-						post("/req/auth-unlock").contentType(MediaType.APPLICATION_JSON).content(authLockRequestToJson))
-				.andExpect(status().isOk()).andExpect(jsonPath("$.response.status", is("success")));
-	}
-
-	@Test
-	@WithUserDetails("reg-admin")
-	public void testRequestAuthUnLockBadRequest() throws Exception {
-		ResponseDTO responseDto = new ResponseDTO();
-		doNothing().when(validator).validateAuthLockOrUnlockRequest(Mockito.any(), Mockito.any());
-		Mockito.doReturn(responseDto).when(residentService).reqAauthTypeStatusUpdate(Mockito.any(), Mockito.any());
-
-		MvcResult result = this.mockMvc
-				.perform(post("/req/auth-unlock").contentType(MediaType.APPLICATION_JSON).content(""))
-				.andExpect(status().isOk()).andReturn();
-		assertTrue(result.getResponse().getContentAsString().contains("RES-SER-418"));
-	}
-
-	@Test
-	@WithUserDetails("reg-admin")
-	public void testRequestAuthHistorySuccess() throws Exception {
-		authHistoryRequest = new RequestWrapper<AuthHistoryRequestDTO>();
-		AuthHistoryRequestDTO hisdto = new AuthHistoryRequestDTO();
-		hisdto.setIndividualId("1234");
-		hisdto.setOtp("1234");
-		hisdto.setTransactionID("1234");
-		authHistoryRequest.setRequest(hisdto);
-		authHistoryRequest.setId("id");
-		authHistoryRequest.setRequesttime("12-12-2009");
-		authHistoryRequest.setVersion("v1");
-		historyRequestToJson = gson.toJson(authHistoryRequest);
-		AuthHistoryResponseDTO responseDto = new AuthHistoryResponseDTO();
-		responseDto.setMessage("success");
-		doNothing().when(validator).validateAuthHistoryRequest(Mockito.any());
-		Mockito.doReturn(responseDto).when(residentService).reqAuthHistory(Mockito.any());
-
-		this.mockMvc
-				.perform(
-						post("/req/auth-history").contentType(MediaType.APPLICATION_JSON).content(historyRequestToJson))
-				.andExpect(status().isOk()).andExpect(jsonPath("$.response.message", is("success")));
-	}
 
 	@Test
 	@WithUserDetails("reg-admin")
@@ -288,7 +157,7 @@ public class ResidentControllerTest {
 	@Test
 	@WithUserDetails("reg-admin")
 	public void testRequestUINUpdate() throws Exception {
-		ResidentUpdateRequestDto dto = new ResidentUpdateRequestDto();
+		PacketCreateRequestDto dto = new PacketCreateRequestDto();
 		ResidentDocuments document = new ResidentDocuments();
 		document.setName("POA");
 		document.setValue("abecfsgdsdg");
@@ -296,15 +165,11 @@ public class ResidentControllerTest {
 		list.add(document);
 		dto.setDocuments(list);
 		dto.setIdentityJson("sdgfdgsfhfh");
-		dto.setIndividualId("9876543210");
-		dto.setIndividualIdType(IdType.UIN.name());
-		dto.setOtp("1234");
-		dto.setTransactionID("12345");
-		RequestWrapper<ResidentUpdateRequestDto> reqWrapper = new RequestWrapper<>();
+		RequestWrapper<PacketCreateRequestDto> reqWrapper = new RequestWrapper<>();
 		reqWrapper.setRequest(dto);
 		reqWrapper.setId("mosip.resident.uin");
 		reqWrapper.setVersion("v1");
-		Mockito.when(residentService.reqUinUpdate(Mockito.any())).thenReturn(new ResidentUpdateResponseDTO());
+		Mockito.when(residentService.createPacket(Mockito.any())).thenReturn(new ResidentUpdateResponseDTO());
 		String requestAsString = gson.toJson(reqWrapper);
 		this.mockMvc.perform(post("/req/update-uin").contentType(MediaType.APPLICATION_JSON).content(requestAsString))
 				.andExpect(status().isOk());

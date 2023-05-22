@@ -6,7 +6,9 @@ import static org.powermock.api.mockito.PowerMockito.when;
 
 import java.io.IOException;
 
-import io.mosip.resident.util.TokenGenerator;
+import io.mosip.tf.packet.exception.TokenGenerationFailedException;
+import io.mosip.tf.packet.util.TokenGenerator;
+
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -25,7 +27,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.core.env.Environment;
 
 import io.mosip.kernel.core.util.TokenHandlerUtil;
-import io.mosip.resident.exception.TokenGenerationFailedException;
 
 
 @RunWith(PowerMockRunner.class)

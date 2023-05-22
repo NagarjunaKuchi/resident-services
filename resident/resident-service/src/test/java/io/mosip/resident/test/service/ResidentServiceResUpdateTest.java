@@ -3,23 +3,24 @@ package io.mosip.resident.test.service;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.FileNotFoundException;
 import io.mosip.kernel.core.idvalidator.spi.UinValidator;
-import io.mosip.resident.constant.ApiName;
-import io.mosip.resident.constant.IdType;
-import io.mosip.resident.constant.ResidentErrorCode;
-import io.mosip.resident.dto.*;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.exception.OtpValidationFailedException;
-import io.mosip.resident.exception.ResidentServiceCheckedException;
-import io.mosip.resident.exception.ResidentServiceException;
-import io.mosip.resident.exception.ValidationFailedException;
-import io.mosip.resident.handler.service.ResidentUpdateService;
-import io.mosip.resident.service.IdAuthService;
-import io.mosip.resident.service.NotificationService;
-import io.mosip.resident.service.impl.ResidentServiceImpl;
-import io.mosip.resident.util.AuditUtil;
-import io.mosip.resident.util.ResidentServiceRestClient;
-import io.mosip.resident.util.Utilities;
-import io.mosip.resident.util.Utilitiy;
+import io.mosip.tf.packet.constant.ApiName;
+import io.mosip.tf.packet.constant.IdType;
+import io.mosip.tf.packet.constant.ResidentErrorCode;
+import io.mosip.tf.packet.dto.*;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.exception.OtpValidationFailedException;
+import io.mosip.tf.packet.exception.ResidentServiceCheckedException;
+import io.mosip.tf.packet.exception.ResidentServiceException;
+import io.mosip.tf.packet.exception.ValidationFailedException;
+import io.mosip.tf.packet.handler.service.PacketCreator;
+import io.mosip.tf.packet.service.IdAuthService;
+import io.mosip.tf.packet.service.NotificationService;
+import io.mosip.tf.packet.service.impl.PacketCreatorServiceImpl;
+import io.mosip.tf.packet.util.AuditUtil;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.util.Utilities;
+import io.mosip.tf.packet.util.Utilitiy;
+
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,10 +53,10 @@ import static org.mockito.Mockito.*;
 @RunWith(SpringRunner.class)
 public class ResidentServiceResUpdateTest {
 	@InjectMocks
-	ResidentServiceImpl residentServiceImpl;
+	PacketCreatorServiceImpl residentServiceImpl;
 
 	@Mock
-	private ResidentUpdateService residentUpdateService;
+	private PacketCreator residentUpdateService;
 
 	@Mock
 	private ResidentServiceRestClient residentServiceRestClient;
@@ -80,14 +81,14 @@ public class ResidentServiceResUpdateTest {
 	@Mock
 	private AuditUtil audit;
 
-	ResidentUpdateRequestDto dto;
+	PacketCreateRequestDto dto;
 
 	PacketGeneratorResDto updateDto;
 
 	@Before
 	public void setUp() throws BaseCheckedException, IOException {
 
-		dto = new ResidentUpdateRequestDto();
+		dto = new PacketCreateRequestDto();
 		ResidentDocuments document = new ResidentDocuments();
 		document.setName("POA_Certificate of residence");
 		document.setValue(
@@ -97,10 +98,6 @@ public class ResidentServiceResUpdateTest {
 		dto.setDocuments(documents);
 		dto.setIdentityJson(
 				"ewogICJpZGVudGl0eSIgOiB7CiAgICAiZGF0ZU9mQmlydGgiIDogIjE5OTUvMDgvMDgiLAogICAgImFnZSIgOiAyNywKICAgICJwaG9uZSIgOiAiOTc4NjU0MzIxMCIsCiAgICAiZW1haWwiIDogImdpcmlzaC55YXJydUBtaW5kdHJlZS5jb20iLAogICAgInByb29mT2ZBZGRyZXNzIiA6IHsKICAgICAgInZhbHVlIiA6ICJQT0FfQ2VydGlmaWNhdGUgb2YgcmVzaWRlbmNlIiwKICAgICAgInR5cGUiIDogIkNPUiIsCiAgICAgICJmb3JtYXQiIDogImpwZyIKICAgIH0sCgkiVUlOIjogIjM1Mjc4MTI0MDYiLAogICAgIklEU2NoZW1hVmVyc2lvbiIgOiAxLjAKICB9Cn0=");
-		dto.setIndividualId("3527812406");
-		dto.setIndividualIdType(IdType.UIN.name());
-		dto.setTransactionID("12345");
-		dto.setOtp("12345");
 		ReflectionTestUtils.setField(residentServiceImpl, "centerId", "10008");
 		ReflectionTestUtils.setField(residentServiceImpl, "machineId", "10008");
 
@@ -164,7 +161,7 @@ public class ResidentServiceResUpdateTest {
     public void reqUinUpdateGetPublicKeyFromKeyManagerThrowsApiResourceExceptionTest() throws ResidentServiceCheckedException, ApisResourceAccessException {
         when(residentServiceRestClient.postApi(eq("PACKETSIGNPUBLICKEY"), any(MediaType.class), 
 			any(HttpEntity.class), eq(PacketSignPublicKeyResponseDTO.class))).thenThrow(new ApisResourceAccessException());
-        residentServiceImpl.reqUinUpdate(dto);
+        residentServiceImpl.createPacket(dto);
     }
 
     @Test(expected = ResidentServiceException.class)
@@ -180,7 +177,7 @@ public class ResidentServiceResUpdateTest {
         responseDto.setResponsetime("2022-01-28T06:51:30.286Z");
         responseDto.setErrors(errorDTOS);
         when(residentServiceRestClient.postApi(any(), any(), any(), any(Class.class))).thenReturn(responseDto);
-        residentServiceImpl.reqUinUpdate(dto);
+        residentServiceImpl.createPacket(dto);
     }
 
     @Test(expected = ResidentServiceException.class)
@@ -191,14 +188,14 @@ public class ResidentServiceResUpdateTest {
         responseDto.setResponsetime("2022-01-28T06:51:30.286Z");
         responseDto.setResponse(null);
         when(residentServiceRestClient.postApi(any(), any(), any(), any(Class.class))).thenReturn(responseDto);
-        residentServiceImpl.reqUinUpdate(dto);
+        residentServiceImpl.createPacket(dto);
     }
 
 	@Test(expected = ResidentServiceException.class)
 	public void reqUinUpdateSearchMachineInMasterServiceThrowsApisResourceAccessExceptionTest() throws ApisResourceAccessException, ResidentServiceCheckedException, OtpValidationFailedException {
 		Mockito.when(residentServiceRestClient.postApi(eq("MACHINESEARCH"), any(MediaType.class), 
 			any(HttpEntity.class), eq(MachineSearchResponseDTO.class))).thenThrow(new ApisResourceAccessException());
-		residentServiceImpl.reqUinUpdate(dto);
+		residentServiceImpl.createPacket(dto);
 
 	}
 
@@ -217,12 +214,12 @@ public class ResidentServiceResUpdateTest {
         machineSearchResponseDTO.setErrors(errorDTOS);
         when(residentServiceRestClient.postApi(eq("MACHINESEARCH"), any(MediaType.class), 
 			any(HttpEntity.class), eq(MachineSearchResponseDTO.class))).thenReturn(machineSearchResponseDTO);
-		residentServiceImpl.reqUinUpdate(dto);
+		residentServiceImpl.createPacket(dto);
 	}
 
 	@Test
 	public void reqUinUpdateGetMachineIdTest() throws BaseCheckedException, IOException {
-		ResidentUpdateResponseDTO residentUpdateResponseDTO = residentServiceImpl.reqUinUpdate(dto);
+		ResidentUpdateResponseDTO residentUpdateResponseDTO = residentServiceImpl.createPacket(dto);
 		assertEquals(residentUpdateResponseDTO.getRegistrationId(), updateDto.getRegistrationId());
 	}
 
@@ -261,14 +258,14 @@ public class ResidentServiceResUpdateTest {
 		Mockito.when(env.getProperty(ApiName.MACHINECREATE.name())).thenReturn("MACHINECREATE");
 		Mockito.when(residentServiceRestClient.postApi(eq("MACHINECREATE"), any(MediaType.class), 
 			any(HttpEntity.class), eq(MachineCreateResponseDTO.class))).thenReturn(machineCreateResponseDTO);
-		ResidentUpdateResponseDTO residentUpdateResponseDTO = residentServiceImpl.reqUinUpdate(dto);
+		ResidentUpdateResponseDTO residentUpdateResponseDTO = residentServiceImpl.createPacket(dto);
 		assertEquals(residentUpdateResponseDTO.getRegistrationId(), updateDto.getRegistrationId());
 		verify(residentServiceRestClient, atLeast(3)).postApi(any(), any(), any(), any(Class.class));
 	}
 
 	@Test
 	public void reqUinUpdateGetMachineIdReturnsTest() throws BaseCheckedException, IOException {
-		ResidentUpdateResponseDTO residentUpdateResponseDTO = residentServiceImpl.reqUinUpdate(dto);
+		ResidentUpdateResponseDTO residentUpdateResponseDTO = residentServiceImpl.createPacket(dto);
 		assertEquals(residentUpdateResponseDTO.getRegistrationId(), updateDto.getRegistrationId());
 		verify(residentServiceRestClient, atLeast(2)).postApi(any(), any(), any(), any(Class.class));
 	}
@@ -278,14 +275,14 @@ public class ResidentServiceResUpdateTest {
 			throws OtpValidationFailedException, IOException, ResidentServiceCheckedException {
 		Mockito.when(idAuthService.validateOtp(Mockito.anyString(), Mockito.anyString(),
 				Mockito.anyString())).thenReturn(false);
-		residentServiceImpl.reqUinUpdate(dto);
+		residentServiceImpl.createPacket(dto);
 
 	}
 
 	@Test(expected = ResidentServiceException.class)
 	public void JsonParsingException() throws ResidentServiceCheckedException {
 		Mockito.when(utility.getMappingJson()).thenReturn(null);
-		residentServiceImpl.reqUinUpdate(dto);
+		residentServiceImpl.createPacket(dto);
 
 	}
 
@@ -293,36 +290,35 @@ public class ResidentServiceResUpdateTest {
 	public void testIOException() throws BaseCheckedException, IOException {
 		HttpClientErrorException exp = new HttpClientErrorException(HttpStatus.BAD_GATEWAY);
 		Mockito.when(residentUpdateService.createPacket(any())).thenThrow(new IOException("badgateway", exp));
-		residentServiceImpl.reqUinUpdate(dto);
+		residentServiceImpl.createPacket(dto);
 	}
 
 	@Test(expected = ResidentServiceException.class)
 	public void testApiResourceAccessExceptionServer() throws BaseCheckedException, IOException {
 		HttpServerErrorException exp = new HttpServerErrorException(HttpStatus.BAD_GATEWAY);
 		Mockito.when(residentUpdateService.createPacket(any())).thenThrow(new ApisResourceAccessException("badgateway", exp));
-		residentServiceImpl.reqUinUpdate(dto);
+		residentServiceImpl.createPacket(dto);
 	}
 
 	@Test(expected = ResidentServiceException.class)
 	public void testBaseCheckedException() throws BaseCheckedException, IOException {
 		Mockito.when(residentUpdateService.createPacket(any())).thenThrow(new BaseCheckedException("erorcode", "badgateway", new RuntimeException()));
-		residentServiceImpl.reqUinUpdate(dto);
+		residentServiceImpl.createPacket(dto);
 	}
 
 	@Test(expected = ResidentServiceException.class)
 	public void otpValidationFailedException() throws OtpValidationFailedException, ResidentServiceCheckedException {
 		Mockito.when(idAuthService.validateOtp(Mockito.anyString(), Mockito.anyString(),
 				Mockito.anyString())).thenThrow(new OtpValidationFailedException());
-		residentServiceImpl.reqUinUpdate(dto);
+		residentServiceImpl.createPacket(dto);
 
 	}
 
 	@Test
 	public void testValidationOfAuthIndividualIdWithUIN() throws ResidentServiceCheckedException, 
 			OtpValidationFailedException, ApisResourceAccessException, FileNotFoundException, IOException  {
-		dto.setIndividualId("3527812407");
 		try {
-			residentServiceImpl.reqUinUpdate(dto);
+			residentServiceImpl.createPacket(dto);
 		} catch(ResidentServiceException e) {
 			assertEquals(ResidentErrorCode.INDIVIDUAL_ID_UIN_MISMATCH.getErrorCode(), 
 				((ValidationFailedException)e.getCause()).getErrorCode());
@@ -333,9 +329,7 @@ public class ResidentServiceResUpdateTest {
 	public void testValidationOfAuthIndividualIdWithVIDSuccess() throws ResidentServiceCheckedException, 
 			OtpValidationFailedException, ApisResourceAccessException, FileNotFoundException, IOException  {
 		Mockito.when(utilities.getUinByVid(anyString())).thenReturn("3527812406");
-		dto.setIndividualIdType("VID");
-		dto.setIndividualId("4447812406");
-		residentServiceImpl.reqUinUpdate(dto);
+		residentServiceImpl.createPacket(dto);
 	}
 
 	@Test
@@ -343,10 +337,8 @@ public class ResidentServiceResUpdateTest {
 			OtpValidationFailedException, ApisResourceAccessException, FileNotFoundException, IOException  {
 
 		Mockito.when(utilities.getUinByVid(anyString())).thenReturn("3527812407");
-		dto.setIndividualIdType("VID");
-		dto.setIndividualId("4447812406");
 		try {
-			residentServiceImpl.reqUinUpdate(dto);
+			residentServiceImpl.createPacket(dto);
 		} catch(ResidentServiceException e) {
 			e.printStackTrace();
 			assertEquals(ResidentErrorCode.INDIVIDUAL_ID_UIN_MISMATCH.getErrorCode(), 

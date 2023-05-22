@@ -1,9 +1,10 @@
 package io.mosip.resident.test.util;
 
-import io.mosip.resident.constant.ApiName;
-import io.mosip.resident.dto.AutnTxnResponseDto;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.constant.ApiName;
+import io.mosip.tf.packet.dto.AutnTxnResponseDto;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

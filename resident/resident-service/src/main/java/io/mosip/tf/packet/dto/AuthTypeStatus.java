@@ -1,0 +1,24 @@
+/**
+ * 
+ */
+package io.mosip.tf.packet.dto;
+
+import lombok.Data;
+
+/**
+ * @author M1022006
+ *
+ */
+@Data
+public class AuthTypeStatus {
+
+	private String authSubType;
+
+	private String authType;
+
+	private boolean locked;
+
+	private Long unlockForSeconds;
+
+	private String requestId;
+}

@@ -5,7 +5,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
-import io.mosip.resident.util.JsonUtil;
+import io.mosip.tf.packet.dto.JsonValue;
+import io.mosip.tf.packet.util.JsonUtil;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.junit.Before;
@@ -14,8 +16,6 @@ import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-
-import io.mosip.resident.dto.JsonValue;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore({"com.sun.org.apache.xerces.*", "javax.xml.*", "org.xml.*", "javax.management.*"})

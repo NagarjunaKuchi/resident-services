@@ -22,21 +22,21 @@ import io.mosip.kernel.core.idvalidator.spi.RidValidator;
 import io.mosip.kernel.core.idvalidator.spi.UinValidator;
 import io.mosip.kernel.core.idvalidator.spi.VidValidator;
 import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.resident.constant.AuthTypeStatus;
-import io.mosip.resident.constant.CardType;
-import io.mosip.resident.constant.IdType;
-import io.mosip.resident.constant.RequestIdType;
-import io.mosip.resident.dto.AuthHistoryRequestDTO;
-import io.mosip.resident.dto.AuthLockOrUnLockRequestDto;
-import io.mosip.resident.dto.AuthUnLockRequestDTO;
-import io.mosip.resident.dto.EuinRequestDTO;
-import io.mosip.resident.dto.RequestDTO;
-import io.mosip.resident.dto.RequestWrapper;
-import io.mosip.resident.dto.ResidentReprintRequestDto;
-import io.mosip.resident.dto.ResidentUpdateRequestDto;
-import io.mosip.resident.exception.InvalidInputException;
-import io.mosip.resident.util.AuditUtil;
-import io.mosip.resident.validator.RequestValidator;
+import io.mosip.tf.packet.constant.AuthTypeStatus;
+import io.mosip.tf.packet.constant.CardType;
+import io.mosip.tf.packet.constant.IdType;
+import io.mosip.tf.packet.constant.RequestIdType;
+import io.mosip.tf.packet.dto.AuthHistoryRequestDTO;
+import io.mosip.tf.packet.dto.AuthLockOrUnLockRequestDto;
+import io.mosip.tf.packet.dto.AuthUnLockRequestDTO;
+import io.mosip.tf.packet.dto.EuinRequestDTO;
+import io.mosip.tf.packet.dto.RequestDTO;
+import io.mosip.tf.packet.dto.RequestWrapper;
+import io.mosip.tf.packet.dto.ResidentReprintRequestDto;
+import io.mosip.tf.packet.dto.PacketCreateRequestDto;
+import io.mosip.tf.packet.exception.InvalidInputException;
+import io.mosip.tf.packet.util.AuditUtil;
+import io.mosip.tf.packet.validator.RequestValidator;
 
 @RunWith(SpringRunner.class)
 public class RequestValidatorTest {
@@ -630,8 +630,8 @@ public class RequestValidatorTest {
 
 	@Test(expected = InvalidInputException.class)
 	public void testValidUpdateId() throws Exception {
-		ResidentUpdateRequestDto requestDTO = new ResidentUpdateRequestDto();
-		RequestWrapper<ResidentUpdateRequestDto> requestWrapper = new RequestWrapper<>();
+		PacketCreateRequestDto requestDTO = new PacketCreateRequestDto();
+		RequestWrapper<PacketCreateRequestDto> requestWrapper = new RequestWrapper<>();
 		requestWrapper.setRequesttime(DateUtils.getUTCCurrentDateTimeString(pattern));
 		requestWrapper.setRequest(requestDTO);
 		requestValidator.validateUpdateRequest(requestWrapper);
@@ -640,8 +640,8 @@ public class RequestValidatorTest {
 
 	@Test(expected = InvalidInputException.class)
 	public void testUpdateValidIndividualType() throws Exception {
-		ResidentUpdateRequestDto requestDTO = new ResidentUpdateRequestDto();
-		RequestWrapper<ResidentUpdateRequestDto> requestWrapper = new RequestWrapper<>();
+		PacketCreateRequestDto requestDTO = new PacketCreateRequestDto();
+		RequestWrapper<PacketCreateRequestDto> requestWrapper = new RequestWrapper<>();
 
 		requestWrapper.setRequesttime(DateUtils.getUTCCurrentDateTimeString(pattern));
 		requestWrapper.setId("mosip.resident.updateuin");
@@ -654,10 +654,8 @@ public class RequestValidatorTest {
 	@Test(expected = InvalidInputException.class)
 	public void testUpdateValidIndividualId() throws Exception {
 		Mockito.when(vidValidator.validateId(Mockito.anyString())).thenReturn(false);
-		ResidentUpdateRequestDto requestDTO = new ResidentUpdateRequestDto();
-		RequestWrapper<ResidentUpdateRequestDto> requestWrapper = new RequestWrapper<>();
-		requestDTO.setIndividualIdType("VID");
-		requestDTO.setIndividualId("1234567");
+		PacketCreateRequestDto requestDTO = new PacketCreateRequestDto();
+		RequestWrapper<PacketCreateRequestDto> requestWrapper = new RequestWrapper<>();
 		requestWrapper.setRequesttime(DateUtils.getUTCCurrentDateTimeString(pattern));
 		requestWrapper.setId("mosip.resident.updateuin");
 		requestWrapper.setVersion("v1");
@@ -669,11 +667,8 @@ public class RequestValidatorTest {
 	@Test(expected = InvalidInputException.class)
 	public void testUpdateValidTransaction() throws Exception {
 
-		ResidentUpdateRequestDto requestDTO = new ResidentUpdateRequestDto();
-		RequestWrapper<ResidentUpdateRequestDto> requestWrapper = new RequestWrapper<>();
-		requestDTO.setIndividualIdType("VID");
-		requestDTO.setIndividualId("1234567");
-		requestDTO.setOtp("1234567");
+		PacketCreateRequestDto requestDTO = new PacketCreateRequestDto();
+		RequestWrapper<PacketCreateRequestDto> requestWrapper = new RequestWrapper<>();
 		requestWrapper.setRequesttime(DateUtils.getUTCCurrentDateTimeString(pattern));
 		requestWrapper.setId("mosip.resident.updateuin");
 		requestWrapper.setVersion("v1");
@@ -685,10 +680,8 @@ public class RequestValidatorTest {
 	@Test(expected = InvalidInputException.class)
 	public void testUpdateValidOtp() throws Exception {
 
-		ResidentUpdateRequestDto requestDTO = new ResidentUpdateRequestDto();
-		RequestWrapper<ResidentUpdateRequestDto> requestWrapper = new RequestWrapper<>();
-		requestDTO.setIndividualIdType("VID");
-		requestDTO.setIndividualId("1234567");
+		PacketCreateRequestDto requestDTO = new PacketCreateRequestDto();
+		RequestWrapper<PacketCreateRequestDto> requestWrapper = new RequestWrapper<>();
 		requestWrapper.setRequesttime(DateUtils.getUTCCurrentDateTimeString(pattern));
 		requestWrapper.setId("mosip.resident.updateuin");
 		requestWrapper.setVersion("v1");
@@ -700,12 +693,8 @@ public class RequestValidatorTest {
 	@Test(expected = InvalidInputException.class)
 	public void testUpdateValidIdentityJson() throws Exception {
 
-		ResidentUpdateRequestDto requestDTO = new ResidentUpdateRequestDto();
-		RequestWrapper<ResidentUpdateRequestDto> requestWrapper = new RequestWrapper<>();
-		requestDTO.setIndividualIdType("VID");
-		requestDTO.setIndividualId("1234567");
-		requestDTO.setOtp("1234567");
-		requestDTO.setTransactionID("1234567");
+		PacketCreateRequestDto requestDTO = new PacketCreateRequestDto();
+		RequestWrapper<PacketCreateRequestDto> requestWrapper = new RequestWrapper<>();
 		requestDTO.setIdentityJson("");
 		requestWrapper.setRequesttime(DateUtils.getUTCCurrentDateTimeString(pattern));
 		requestWrapper.setId("mosip.resident.updateuin");
@@ -717,8 +706,8 @@ public class RequestValidatorTest {
 
 	@Test(expected = InvalidInputException.class)
 	public void testValidReprintId() throws Exception {
-		ResidentUpdateRequestDto requestDTO = new ResidentUpdateRequestDto();
-		RequestWrapper<ResidentUpdateRequestDto> requestWrapper = new RequestWrapper<>();
+		PacketCreateRequestDto requestDTO = new PacketCreateRequestDto();
+		RequestWrapper<PacketCreateRequestDto> requestWrapper = new RequestWrapper<>();
 		requestWrapper.setRequesttime(DateUtils.getUTCCurrentDateTimeString(pattern));
 		requestWrapper.setRequest(requestDTO);
 		requestValidator.validateUpdateRequest(requestWrapper);

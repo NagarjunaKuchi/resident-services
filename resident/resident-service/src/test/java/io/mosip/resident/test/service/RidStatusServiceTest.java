@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.mosip.resident.service.NotificationService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,17 +20,18 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
 import io.mosip.kernel.core.idvalidator.spi.RidValidator;
-import io.mosip.resident.dto.ErrorDTO;
-import io.mosip.resident.dto.RegStatusCheckResponseDTO;
-import io.mosip.resident.dto.RegistrationStatusDTO;
-import io.mosip.resident.dto.RegistrationStatusResponseDTO;
-import io.mosip.resident.dto.RequestDTO;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.exception.RIDInvalidException;
-import io.mosip.resident.exception.ResidentServiceException;
-import io.mosip.resident.service.impl.ResidentServiceImpl;
-import io.mosip.resident.util.AuditUtil;
-import io.mosip.resident.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.dto.ErrorDTO;
+import io.mosip.tf.packet.dto.RegStatusCheckResponseDTO;
+import io.mosip.tf.packet.dto.RegistrationStatusDTO;
+import io.mosip.tf.packet.dto.RegistrationStatusResponseDTO;
+import io.mosip.tf.packet.dto.RequestDTO;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.exception.RIDInvalidException;
+import io.mosip.tf.packet.exception.ResidentServiceException;
+import io.mosip.tf.packet.service.NotificationService;
+import io.mosip.tf.packet.service.impl.PacketCreatorServiceImpl;
+import io.mosip.tf.packet.util.AuditUtil;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RidStatusServiceTest {
@@ -56,7 +56,7 @@ public class RidStatusServiceTest {
 	private AuditUtil audit;
 
 	@InjectMocks
-	ResidentServiceImpl residentService = new ResidentServiceImpl();
+	PacketCreatorServiceImpl residentService = new PacketCreatorServiceImpl();
 
 	private RequestDTO requestDTO;
 

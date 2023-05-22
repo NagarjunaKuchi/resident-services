@@ -32,22 +32,22 @@ import org.springframework.web.client.HttpServerErrorException;
 
 import io.mosip.kernel.core.http.ResponseWrapper;
 import io.mosip.kernel.core.templatemanager.spi.TemplateManager;
-import io.mosip.resident.constant.ApiName;
-import io.mosip.resident.constant.NotificationTemplateCode;
-import io.mosip.resident.dto.NotificationRequestDto;
-import io.mosip.resident.dto.NotificationResponseDTO;
-import io.mosip.resident.dto.TemplateDto;
-import io.mosip.resident.dto.TemplateResponseDto;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.exception.ResidentServiceCheckedException;
-import io.mosip.resident.exception.ResidentServiceException;
-import io.mosip.resident.service.NotificationService;
-import io.mosip.resident.util.AuditUtil;
-import io.mosip.resident.util.JsonUtil;
-import io.mosip.resident.util.ResidentServiceRestClient;
-import io.mosip.resident.util.Utilities;
-import io.mosip.resident.util.Utilitiy;
-import io.mosip.resident.validator.RequestValidator;
+import io.mosip.tf.packet.constant.ApiName;
+import io.mosip.tf.packet.constant.NotificationTemplateCode;
+import io.mosip.tf.packet.dto.NotificationRequestDto;
+import io.mosip.tf.packet.dto.NotificationResponseDTO;
+import io.mosip.tf.packet.dto.TemplateDto;
+import io.mosip.tf.packet.dto.TemplateResponseDto;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.exception.ResidentServiceCheckedException;
+import io.mosip.tf.packet.exception.ResidentServiceException;
+import io.mosip.tf.packet.service.NotificationService;
+import io.mosip.tf.packet.util.AuditUtil;
+import io.mosip.tf.packet.util.JsonUtil;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.util.Utilities;
+import io.mosip.tf.packet.util.Utilitiy;
+import io.mosip.tf.packet.validator.RequestValidator;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore({"com.sun.org.apache.xerces.*", "javax.xml.*", "org.xml.*", "javax.management.*"})

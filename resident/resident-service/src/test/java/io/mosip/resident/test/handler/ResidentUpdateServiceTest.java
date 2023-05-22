@@ -34,19 +34,19 @@ import io.mosip.commons.packet.dto.PacketInfo;
 import io.mosip.commons.packet.exception.PacketCreatorException;
 import io.mosip.commons.packet.facade.PacketWriter;
 import io.mosip.kernel.core.exception.BaseCheckedException;
-import io.mosip.resident.dto.PacketGeneratorResDto;
-import io.mosip.resident.dto.RegistrationType;
-import io.mosip.resident.dto.ResidentIndividialIDType;
-import io.mosip.resident.dto.ResidentUpdateDto;
-import io.mosip.resident.dto.ResponseWrapper;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.handler.service.ResidentUpdateService;
-import io.mosip.resident.handler.service.SyncAndUploadService;
-import io.mosip.resident.util.AuditUtil;
-import io.mosip.resident.util.IdSchemaUtil;
-import io.mosip.resident.util.ResidentServiceRestClient;
-import io.mosip.resident.util.Utilities;
-import io.mosip.resident.validator.RequestHandlerRequestValidator;
+import io.mosip.tf.packet.dto.PacketGeneratorResDto;
+import io.mosip.tf.packet.dto.RegistrationType;
+import io.mosip.tf.packet.dto.ResidentIndividialIDType;
+import io.mosip.tf.packet.dto.ResidentUpdateDto;
+import io.mosip.tf.packet.dto.ResponseWrapper;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.handler.service.PacketCreator;
+import io.mosip.tf.packet.handler.service.SyncAndUploadService;
+import io.mosip.tf.packet.util.AuditUtil;
+import io.mosip.tf.packet.util.IdSchemaUtil;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.util.Utilities;
+import io.mosip.tf.packet.validator.RequestHandlerRequestValidator;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore({"com.sun.org.apache.xerces.*", "javax.xml.*", "org.xml.*", "javax.management.*"})
@@ -56,7 +56,7 @@ public class ResidentUpdateServiceTest {
     private ResidentUpdateDto residentUpdateDto;
 
     @InjectMocks
-    private ResidentUpdateService residentUpdateService;
+    private PacketCreator residentUpdateService;
 
     @Mock
     private RequestHandlerRequestValidator validator;

@@ -2,14 +2,15 @@ package io.mosip.resident.test.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.exception.ServiceError;
-import io.mosip.resident.constant.ResidentErrorCode;
-import io.mosip.resident.dto.*;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.exception.IdRepoAppException;
-import io.mosip.resident.exception.VidCreationException;
-import io.mosip.resident.util.JsonUtil;
-import io.mosip.resident.util.ResidentServiceRestClient;
-import io.mosip.resident.util.Utilities;
+import io.mosip.tf.packet.constant.ResidentErrorCode;
+import io.mosip.tf.packet.dto.*;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.exception.IdRepoAppException;
+import io.mosip.tf.packet.exception.VidCreationException;
+import io.mosip.tf.packet.util.JsonUtil;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.util.Utilities;
+
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 import org.junit.Before;

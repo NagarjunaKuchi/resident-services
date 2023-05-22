@@ -35,14 +35,15 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
 import io.mosip.kernel.core.http.ResponseWrapper;
-import io.mosip.resident.dto.IdRepoResponseDto;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.exception.IdRepoAppException;
-import io.mosip.resident.exception.ResidentServiceCheckedException;
-import io.mosip.resident.exception.ResidentServiceException;
-import io.mosip.resident.util.JsonUtil;
-import io.mosip.resident.util.ResidentServiceRestClient;
-import io.mosip.resident.util.Utilitiy;
+import io.mosip.tf.packet.dto.IdRepoResponseDto;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.exception.IdRepoAppException;
+import io.mosip.tf.packet.exception.ResidentServiceCheckedException;
+import io.mosip.tf.packet.exception.ResidentServiceException;
+import io.mosip.tf.packet.util.JsonUtil;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.util.Utilitiy;
+
 import org.springframework.web.client.RestTemplate;
 
 @RunWith(PowerMockRunner.class)

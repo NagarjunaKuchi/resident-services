@@ -1,10 +1,11 @@
 package io.mosip.resident.test.util;
 
 import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.resident.constant.ApiName;
-import io.mosip.resident.exception.ApisResourceAccessException;
-import io.mosip.resident.util.IdSchemaUtil;
-import io.mosip.resident.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.constant.ApiName;
+import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.util.IdSchemaUtil;
+import io.mosip.tf.packet.util.ResidentServiceRestClient;
+
 import org.assertj.core.util.Lists;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,7 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.mosip.resident.util.IdSchemaUtil.*;
+import static io.mosip.tf.packet.util.IdSchemaUtil.*;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.powermock.api.mockito.PowerMockito.when;
