@@ -192,6 +192,8 @@ public class SBIConstant {
 	public static String MOSIP_PURPOSE_REGISTRATION = "mosip.mock.sbi.device.purpose.registration";
 	public static String MOSIP_PURPOSE_AUTH = "mosip.mock.sbi.device.purpose.auth";
 
+	public static final String BIOMETRIC_SEPERATOR = "(?<=\\.)(.*)(?=\\.)";
+	
 	/** Biometric Types Names */
 	public final static String MOSIP_BIOMETRIC_TYPE_BIOMETRIC_DEVICE = "Biometric Device";
 	public final static String MOSIP_BIOMETRIC_TYPE_FINGER = "Finger";

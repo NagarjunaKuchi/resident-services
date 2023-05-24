@@ -11,6 +11,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
@@ -29,6 +31,7 @@ import io.mosip.commons.packet.dto.PacketInfo;
 import io.mosip.commons.packet.dto.packet.PacketDto;
 import io.mosip.commons.packet.exception.PacketCreatorException;
 import io.mosip.commons.packet.facade.PacketWriter;
+import io.mosip.kernel.biometrics.commons.BiometricsSignatureHelper;
 import io.mosip.kernel.biometrics.entities.BIR;
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
 import io.mosip.kernel.biometrics.spi.CbeffUtil;
@@ -55,11 +58,13 @@ import io.mosip.tf.packet.dto.ResidentIndividialIDType;
 import io.mosip.tf.packet.dto.ResidentUpdateDto;
 import io.mosip.tf.packet.dto.ResponseWrapper;
 import io.mosip.tf.packet.exception.ApisResourceAccessException;
+import io.mosip.tf.packet.mock.sbi.SBIDeviceHelper;
 import io.mosip.tf.packet.util.AuditUtil;
 import io.mosip.tf.packet.util.EventEnum;
 import io.mosip.tf.packet.util.IdSchemaUtil;
 import io.mosip.tf.packet.util.JsonUtil;
 import io.mosip.tf.packet.util.ResidentServiceRestClient;
+import io.mosip.tf.packet.util.SBIConstant;
 import io.mosip.tf.packet.util.TokenGenerator;
 import io.mosip.tf.packet.util.Utilities;
 import io.mosip.tf.packet.validator.RequestHandlerRequestValidator;
@@ -219,26 +224,130 @@ public class PacketCreator {
 		Map<String, BiometricRecord> bioValues = new HashMap<String, BiometricRecord>();
 		BiometricRecord biometricRecord = new BiometricRecord();
 		byte[] data = CryptoUtil.decodeURLSafeBase64(cbeffData);
+		List<BIR> segments = new ArrayList<>();
 		try {
 			cbeffUtil.validateXML(data);
 			byte[] newCbeffData = cbeffUtil.createXML(cbeffUtil.getBIRDataFromXML(data));
 			System.out.println("newCbeffData:" + CryptoUtil.encodeToURLSafeBase64(newCbeffData));
 			List<BIR> birs = cbeffUtil.getBIRDataFromXML(newCbeffData);			
-			biometricRecord.setSegments(birs);
-			biometricRecord.setOthers(null);
-			bioValues.put(individualBiometrics, biometricRecord);
+			//biometricRecord.setSegments(birs);
+			//biometricRecord.setOthers(null);			
 //			System.out.println(new Gson().toJson(biometricRecord.getSegments()));
 			for (BIR bir : birs) {
+				BIR newBir = new BIR();
+				newBir.setBdb(bir.getBdb());
+				newBir.setBdbInfo(bir.getBdbInfo());
+				newBir.setBirInfo(bir.getBirInfo());
+				newBir.setBirs(bir.getBirs());
+				newBir.setCbeffversion(bir.getCbeffversion());
+				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(), new String(bir.getBdb()))).getBytes());
+//				newBir.setSbInfo(bir.getSbInfo());
+				newBir.setVersion(bir.getVersion());
+				newBir.setOthers(getBIROthers(bir.getBdbInfo().getType().toString()));
+				segments.add(newBir);
 				System.out.println(bir.getBdbInfo().getType());
 				System.out.println(bir.getBdbInfo().getSubtype());
+				
+				try {
+					System.out.println("token :: " + BiometricsSignatureHelper.extractJWTToken(newBir));
+				}catch(Exception wx) {
+					wx.printStackTrace();
+					System.out.println("Error from Packet Creator:: " +wx.getMessage());;
+				}
 			}
+			biometricRecord.setSegments(segments);
+			bioValues.put(individualBiometrics, biometricRecord);
 		} catch (Exception e) {
 			throw e;
 		}
 		return bioValues;
 	}
 	
-	
+	public String getSignature(String data){
+		if (data == null || data.isEmpty()) {
+			
+		}
+		Pattern pattern = Pattern.compile(SBIConstant.BIOMETRIC_SEPERATOR);
+		Matcher matcher = pattern.matcher(data);
+		if(matcher.find()) {
+			//returns header..signature
+			return data.replace(matcher.group(1),"");
+		}
+
+		return null;
+	}
+	private HashMap<String, String> getBIROthers(String type){
+		HashMap<String, String> others = new HashMap<>();
+		if(type.contains("FACE")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+			others.put("SPEC_VERSION", "0.9.5");
+			others.put("RETRIES", "1");
+			others.put("FORCE_CAPTURED", "false");
+			others.put("EXCEPTION", "false");
+			
+			try {
+				others.put("PAYLOAD", objectMapper.writeValueAsString(deviceHelper.getDeviceInfo()));
+			} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			others.put("SDK_SCORE", "0.0");
+			return others;
+		}
+		if(type.contains("FINGER")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+			others.put("SPEC_VERSION", "0.9.5");
+			others.put("RETRIES", "1");
+			others.put("FORCE_CAPTURED", "false");
+			others.put("EXCEPTION", "false");
+//			others.put("PAYLOAD", deviceHelper.getDeviceInfoDto().getDeviceInfo());
+			try {
+				others.put("PAYLOAD", objectMapper.writeValueAsString(deviceHelper.getDeviceInfo()));
+			} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			others.put("SDK_SCORE", "0.0");
+			return others;
+			
+		}
+		if(type.contains("IRIS")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+			others.put("SPEC_VERSION", "0.9.5");
+			others.put("RETRIES", "1");
+			others.put("FORCE_CAPTURED", "false");
+			others.put("EXCEPTION", "false");
+//			others.put("PAYLOAD", deviceHelper.getDeviceInfoDto().getDeviceInfo());
+			try {
+				others.put("PAYLOAD", objectMapper.writeValueAsString(deviceHelper.getDeviceInfo()));
+			} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			others.put("SDK_SCORE", "0.0");
+			return others;
+		}
+		return others;
+	}
+	private String getSignBioData(String type,String bioData){
+		HashMap<String, String> others = new HashMap<>();
+		if(type.contains("FACE")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE, bioData);
+		}
+		if(type.contains("FINGER")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP, bioData);			
+		}
+		if(type.contains("IRIS")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE, bioData);		
+		}
+		return null;
+	}
+
 	private void setDemographicDocuments(String documentBytes, JSONObject demoJsonObject, String documentName,
 			Map<String, Document> map) {
 		JSONObject identityJson = JsonUtil.getJSONObject(demoJsonObject, IDENTITY);

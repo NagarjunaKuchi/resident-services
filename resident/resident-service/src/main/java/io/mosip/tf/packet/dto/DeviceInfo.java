@@ -22,4 +22,5 @@ public class DeviceInfo {
 	public String certification;
 	public String[] deviceSubId;
 	public String callbackId;
+	public String bioValue;
 }

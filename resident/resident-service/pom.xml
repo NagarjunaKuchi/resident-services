@@ -34,6 +34,12 @@
 			<version>${powermock.beta.version}</version>
 			<scope>test</scope>
 		</dependency>
+					<dependency>
+				<groupId>com.squareup.okhttp</groupId>
+				<artifactId>okhttp</artifactId>
+				<version>2.7.5</version>
+			</dependency>
+
 		<dependency>
 			<groupId>org.powermock</groupId>
 			<artifactId>powermock-api-mockito2</artifactId>
