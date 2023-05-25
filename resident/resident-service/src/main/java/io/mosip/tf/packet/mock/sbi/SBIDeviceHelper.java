@@ -521,7 +521,7 @@ public class SBIDeviceHelper {
 	            //LOGGER.Info("\nPrivate Key:");
 	            //LOGGER.Info(key);
 	            signedBioMetricsDataDto = JwtUtility.getJwt(currentBioData.getBytes("UTF-8"), key, (X509Certificate) cert);
-    		
+    		System.out.println("signedBioMetrics :: " + signedBioMetricsDataDto);
         		return signedBioMetricsDataDto ;
 			}	
 		} catch (Exception ex) {

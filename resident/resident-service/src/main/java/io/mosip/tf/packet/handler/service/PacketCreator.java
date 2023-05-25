@@ -3,7 +3,9 @@ package io.mosip.tf.packet.handler.service;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -19,6 +21,7 @@ import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.HttpClientErrorException;
@@ -45,6 +48,7 @@ import io.mosip.kernel.core.util.DateUtils;
 import io.mosip.kernel.core.util.FileUtils;
 import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
+import io.mosip.kernel.signature.dto.JWTSignatureVerifyResponseDto;
 import io.mosip.tf.packet.config.LoggerConfiguration;
 import io.mosip.tf.packet.constant.ApiName;
 import io.mosip.tf.packet.constant.LoggerFileConstant;
@@ -57,6 +61,7 @@ import io.mosip.tf.packet.dto.RegistrationType;
 import io.mosip.tf.packet.dto.ResidentIndividialIDType;
 import io.mosip.tf.packet.dto.ResidentUpdateDto;
 import io.mosip.tf.packet.dto.ResponseWrapper;
+import io.mosip.tf.packet.dto.JWTSignatureVerifyRequestDto;
 import io.mosip.tf.packet.exception.ApisResourceAccessException;
 import io.mosip.tf.packet.mock.sbi.SBIDeviceHelper;
 import io.mosip.tf.packet.util.AuditUtil;
@@ -68,6 +73,8 @@ import io.mosip.tf.packet.util.SBIConstant;
 import io.mosip.tf.packet.util.TokenGenerator;
 import io.mosip.tf.packet.util.Utilities;
 import io.mosip.tf.packet.validator.RequestHandlerRequestValidator;
+import io.mosip.tf.packet.dto.RequestWrapper;
+
 
 @Component
 public class PacketCreator {
@@ -220,6 +227,19 @@ public class PacketCreator {
 			return dto;
 	}
 
+	public String getPayLoad(String data){
+		if (data == null || data.isEmpty()) {
+		}
+		String payload = null; 
+		Pattern pattern = Pattern.compile(SBIConstant.BIOMETRIC_SEPERATOR);
+		Matcher matcher = pattern.matcher(data);
+		if (matcher.find()) {
+			payload =  matcher.group(1);
+			System.out.println("PAYLOAD :: " + payload);
+		}
+		return payload;
+	}
+	
 	private Map<String, BiometricRecord> addBiometricDocuments(String individualBiometrics, String cbeffData) throws Exception {
 		Map<String, BiometricRecord> bioValues = new HashMap<String, BiometricRecord>();
 		BiometricRecord biometricRecord = new BiometricRecord();
@@ -230,29 +250,34 @@ public class PacketCreator {
 			byte[] newCbeffData = cbeffUtil.createXML(cbeffUtil.getBIRDataFromXML(data));
 			System.out.println("newCbeffData:" + CryptoUtil.encodeToURLSafeBase64(newCbeffData));
 			List<BIR> birs = cbeffUtil.getBIRDataFromXML(newCbeffData);			
-			//biometricRecord.setSegments(birs);
-			//biometricRecord.setOthers(null);			
-//			System.out.println(new Gson().toJson(biometricRecord.getSegments()));
 			for (BIR bir : birs) {
+				if(bir.getBdbInfo().getType().toString().contains("Face") || bir.getBdbInfo().getType().toString().contains("Iris")
+						||bir.getBdbInfo().getType().toString().contains("Finger")) {
+//				BIR newBir = new BIR.BIRBuilder()
+//						.withOthers("PAYLOAD",getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))
+//						.withBdb(bir.getBdb())
+//						.withSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(), new String(bir.getBdb()))).getBytes()).build();
+//				newBir.setBirs(bir.getBirs());
 				BIR newBir = new BIR();
+				//newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(), new String(bir.getBdb()))).getBytes());
 				newBir.setBdb(bir.getBdb());
 				newBir.setBdbInfo(bir.getBdbInfo());
 				newBir.setBirInfo(bir.getBirInfo());
 				newBir.setBirs(bir.getBirs());
-				newBir.setCbeffversion(bir.getCbeffversion());
-				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(), new String(bir.getBdb()))).getBytes());
-//				newBir.setSbInfo(bir.getSbInfo());
-				newBir.setVersion(bir.getVersion());
+				newBir.setCbeffversion(bir.getCbeffversion());				
+				newBir.setVersion(bir.getVersion());				
 				newBir.setOthers(getBIROthers(bir.getBdbInfo().getType().toString()));
+				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(), CryptoUtil.encodeToURLSafeBase64(bir.getBdb()),getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))).getBytes());
 				segments.add(newBir);
-				System.out.println(bir.getBdbInfo().getType());
-				System.out.println(bir.getBdbInfo().getSubtype());
 				
-				try {
-					System.out.println("token :: " + BiometricsSignatureHelper.extractJWTToken(newBir));
-				}catch(Exception wx) {
-					wx.printStackTrace();
-					System.out.println("Error from Packet Creator:: " +wx.getMessage());;
+//				try {
+////					String token = BiometricsSignatureHelper.extractJWTToken(newBir);
+////					System.out.println("token :: " + token);
+////					validateJWTToken("",token);					
+//				}catch(Exception wx) {
+//					wx.printStackTrace();
+//					System.out.println("Error from Packet Creator:: " +wx.getMessage());;
+//				}
 				}
 			}
 			biometricRecord.setSegments(segments);
@@ -331,19 +356,19 @@ public class PacketCreator {
 		}
 		return others;
 	}
-	private String getSignBioData(String type,String bioData){
-		HashMap<String, String> others = new HashMap<>();
+	private String getSignBioData(String type,String bioData, String payload){
+		String bioDataToSign = payload.replace("<bioValue>", bioData);
 		if(type.contains("FACE")) {
 			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
-			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE, bioData);
+			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE, bioDataToSign);
 		}
 		if(type.contains("FINGER")) {
 			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
-			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP, bioData);			
+			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP, bioDataToSign);			
 		}
 		if(type.contains("IRIS")) {
 			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
-			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE, bioData);		
+			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE, bioDataToSign);		
 		}
 		return null;
 	}
@@ -478,5 +503,71 @@ public class PacketCreator {
 		}
 		return rid;
 	}
+	
+	private void validateJWTToken(String id, String token)
+			{
+		JWTSignatureVerifyRequestDto jwtSignatureVerifyRequestDto = new JWTSignatureVerifyRequestDto();
+		
+		jwtSignatureVerifyRequestDto.setApplicationId("REGISTRATION");
+		jwtSignatureVerifyRequestDto.setReferenceId("SIGN");
+		jwtSignatureVerifyRequestDto.setJwtSignatureData(token);
+		jwtSignatureVerifyRequestDto.setActualData(token.split("\\.")[1]);
+		System.out.println("jwtSignatureVerifyRequestDto actual Data :: " + jwtSignatureVerifyRequestDto.getActualData());
+
+		// in packet validator stage we are checking only the structural part of the
+		// packet so setting validTrust to false
+		jwtSignatureVerifyRequestDto.setValidateTrust(false);
+		jwtSignatureVerifyRequestDto.setDomain("Device");
+		RequestWrapper<JWTSignatureVerifyRequestDto> request = new RequestWrapper<>();
+
+		request.setRequest(jwtSignatureVerifyRequestDto);
+		request.setVersion("1.0");
+		DateTimeFormatter format = DateTimeFormatter.ofPattern(env.getProperty("mosip.registration.processor.datetime.pattern"));
+		LocalDateTime localdatetime = LocalDateTime
+				.parse(DateUtils.getUTCCurrentDateTimeString(env.getProperty("mosip.registration.processor.datetime.pattern")), format);
+		request.setRequesttime(localdatetime.toString());
+
+		ResponseWrapper<?> responseWrapper = null;
+		try {
+			responseWrapper = (ResponseWrapper<?>) restClientService
+					.postApi(env.getProperty("JWTVERIFY"), MediaType.APPLICATION_JSON, request, ResponseWrapper.class);
+		} catch (ApisResourceAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (responseWrapper.getResponse() != null) {
+			JWTSignatureVerifyResponseDto jwtResponse = null;
+			try {
+				jwtResponse = mapper.readValue(
+						mapper.writeValueAsString(responseWrapper.getResponse()), JWTSignatureVerifyResponseDto.class);
+			} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			if (!jwtResponse.isSignatureValid()) {
+				try {
+					logger.error(LoggerFileConstant.REGISTRATIONID.toString(), id,
+							"Request -> " + JsonUtils.javaObjectToJsonString(request)
+							," Response -> " + JsonUtils.javaObjectToJsonString(responseWrapper));
+				} catch (JsonProcessingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		} else {
+			try {
+				logger.error(LoggerFileConstant.REGISTRATIONID.toString(), id,
+						"Request -> " + JsonUtils.javaObjectToJsonString(request)
+						," Response -> " + JsonUtils.javaObjectToJsonString(responseWrapper));
+			} catch (JsonProcessingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		}
+
+	}
+
 
 }
