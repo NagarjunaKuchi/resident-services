@@ -3,7 +3,6 @@ package io.mosip.tf.packet.handler.service;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -27,8 +26,8 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.HttpClientErrorException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-
+import io.mosip.tf.packet.dto.DeviceInfo;
+import io.mosip.tf.packet.dto.DeviceMetaInfo;
 import io.mosip.commons.packet.dto.Document;
 import io.mosip.commons.packet.dto.PacketInfo;
 import io.mosip.commons.packet.dto.packet.PacketDto;
@@ -45,7 +44,6 @@ import io.mosip.kernel.core.exception.ServiceError;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.kernel.core.util.FileUtils;
 import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.kernel.signature.dto.JWTSignatureVerifyResponseDto;
@@ -58,7 +56,6 @@ import io.mosip.tf.packet.dto.FieldValue;
 import io.mosip.tf.packet.dto.PackerGeneratorFailureDto;
 import io.mosip.tf.packet.dto.PacketGeneratorResDto;
 import io.mosip.tf.packet.dto.RegistrationType;
-import io.mosip.tf.packet.dto.ResidentIndividialIDType;
 import io.mosip.tf.packet.dto.ResidentUpdateDto;
 import io.mosip.tf.packet.dto.ResponseWrapper;
 import io.mosip.tf.packet.dto.JWTSignatureVerifyRequestDto;
@@ -70,11 +67,9 @@ import io.mosip.tf.packet.util.IdSchemaUtil;
 import io.mosip.tf.packet.util.JsonUtil;
 import io.mosip.tf.packet.util.ResidentServiceRestClient;
 import io.mosip.tf.packet.util.SBIConstant;
-import io.mosip.tf.packet.util.TokenGenerator;
 import io.mosip.tf.packet.util.Utilities;
 import io.mosip.tf.packet.validator.RequestHandlerRequestValidator;
 import io.mosip.tf.packet.dto.RequestWrapper;
-
 
 @Component
 public class PacketCreator {
@@ -106,14 +101,12 @@ public class PacketCreator {
 
 	@Autowired
 	private Utilities utilities;
-	
+
 	@Autowired
 	AuditUtil audit;
-	
+
 	@Autowired
 	protected CbeffUtil cbeffUtil;
-	
-	private ObjectMapper objectMapper = new ObjectMapper();
 
 	private static final String PROOF_OF_ADDRESS = "proofOfAddress";
 	private static final String PROOF_OF_DOB = "proofOfDOB";
@@ -123,10 +116,11 @@ public class PacketCreator {
 	private static final String FORMAT = "format";
 	private static final String TYPE = "type";
 	private static final String VALUE = "value";
+	Map<String, DeviceMetaInfo> capturedRegisteredDevices = new LinkedHashMap<>();
 
 	public PacketGeneratorResDto createPacket(ResidentUpdateDto request) throws BaseCheckedException, IOException {
-		logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(),
-				request.getIdValue(), "ResidentUpdateServiceImpl::createPacket()");
+		logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(), request.getIdValue(),
+				"ResidentUpdateServiceImpl::createPacket()");
 		byte[] packetZipBytes = null;
 		audit.setAuditRequestDto(EventEnum.CREATE_PACKET);
 		PackerGeneratorFailureDto dto = new PackerGeneratorFailureDto();
@@ -146,7 +140,8 @@ public class PacketCreator {
 
 				fields.keySet().forEach(key -> {
 					try {
-						idMap.put(key, fields.get(key) != null ? JsonUtils.javaObjectToJsonString(fields.get(key)) : null);
+						idMap.put(key,
+								fields.get(key) != null ? JsonUtils.javaObjectToJsonString(fields.get(key)) : null);
 					} catch (JsonProcessingException e) {
 						throw new BaseUncheckedException(ResidentErrorCode.JSON_PROCESSING_EXCEPTION.getErrorCode(),
 								ResidentErrorCode.JSON_PROCESSING_EXCEPTION.getErrorMessage(), e);
@@ -160,8 +155,7 @@ public class PacketCreator {
 				if (request.getProofOfDateOfBirth() != null && !request.getProofOfDateOfBirth().isEmpty())
 					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_DOB, map);
 				if (request.getProofOfRelationship() != null && !request.getProofOfRelationship().isEmpty())
-					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_RELATIONSHIP,
-							map);
+					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_RELATIONSHIP, map);
 				if (request.getProofOfIdentity() != null && !request.getProofOfIdentity().isEmpty())
 					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_IDENTITY, map);
 
@@ -173,20 +167,23 @@ public class PacketCreator {
 				packetDto.setSchemaJson(idSchemaUtil.getIdSchema(Double.valueOf(idschemaVersion)));
 				packetDto.setFields(idMap);
 				packetDto.setDocuments(map);
-				packetDto.setMetaInfo(getRegistrationMetaData(request.getIdValue(),
-						request.getRequestType().toString(), request.getCenterId(), request.getMachineId()));
 				packetDto.setAudits(utilities.generateAudit(packetDto.getId()));
 				packetDto.setOfflineMode(false);
 				packetDto.setRefId(request.getCenterId() + "_" + request.getMachineId());
-				packetDto.setBiometrics(addBiometricDocuments("individualBiometrics", request.getIndividualBiometrics()));;
+				packetDto.setBiometrics(
+						addBiometricDocuments("individualBiometrics", request.getIndividualBiometrics()));
+				;
+				packetDto.setMetaInfo(getRegistrationMetaData(request.getIdValue(), request.getRequestType().toString(),
+						request.getCenterId(), request.getMachineId()));
 				List<PacketInfo> packetInfos = packetWriter.createPacket(packetDto);
 
 				if (CollectionUtils.isEmpty(packetInfos) || packetInfos.iterator().next().getId() == null)
-					throw new PacketCreatorException(ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorCode(), ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorMessage());
+					throw new PacketCreatorException(ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorCode(),
+							ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorMessage());
 
-				file = new File(env.getProperty("object.store.base.location")
-						+ File.separator + env.getProperty("packet.manager.account.name")
-						+ File.separator + packetInfos.iterator().next().getId() + ".zip");
+				file = new File(env.getProperty("object.store.base.location") + File.separator
+						+ env.getProperty("packet.manager.account.name") + File.separator
+						+ packetInfos.iterator().next().getId() + ".zip");
 
 				FileInputStream fis = new FileInputStream(file);
 
@@ -194,23 +191,19 @@ public class PacketCreator {
 
 				String creationTime = DateUtils.formatToISOString(LocalDateTime.now());
 
-				logger.debug(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), packetDto.getId(),
+				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						packetDto.getId(),
 						"ResidentUpdateServiceImpl::createPacket()::packet created and sent for sync service");
 
 				PacketGeneratorResDto packerGeneratorResDto = syncUploadEncryptionService.uploadUinPacket(
-						packetDto.getId(), creationTime, RegistrationType.NEW.toString(),
-						packetZipBytes);
+						packetDto.getId(), creationTime, RegistrationType.NEW.toString(), packetZipBytes);
 
-				logger.debug(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), packetDto.getId(),
-						"ResidentUpdateServiceImpl::createPacket()::packet synched and uploaded");
+				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						packetDto.getId(), "ResidentUpdateServiceImpl::createPacket()::packet synched and uploaded");
 				return packerGeneratorResDto;
 			} catch (Exception e) {
-				logger.error(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(),
-						ResidentErrorCode.BASE_EXCEPTION.getErrorMessage(),
-						ExceptionUtils.getStackTrace(e));
+				logger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						ResidentErrorCode.BASE_EXCEPTION.getErrorMessage(), ExceptionUtils.getStackTrace(e));
 				if (e instanceof BaseCheckedException) {
 					throw (BaseCheckedException) e;
 				}
@@ -219,28 +212,29 @@ public class PacketCreator {
 						ResidentErrorCode.UNKNOWN_EXCEPTION.getErrorMessage(), e);
 
 			} finally {
-				//if (file != null && file.exists())
-				//	FileUtils.forceDelete(file);
+				// if (file != null && file.exists())
+				// FileUtils.forceDelete(file);
 			}
 
 		} else
 			return dto;
 	}
 
-	public String getPayLoad(String data){
+	public String getPayLoad(String data) {
 		if (data == null || data.isEmpty()) {
 		}
-		String payload = null; 
+		String payload = null;
 		Pattern pattern = Pattern.compile(SBIConstant.BIOMETRIC_SEPERATOR);
 		Matcher matcher = pattern.matcher(data);
 		if (matcher.find()) {
-			payload =  matcher.group(1);
+			payload = matcher.group(1);
 			System.out.println("PAYLOAD :: " + payload);
 		}
 		return payload;
 	}
-	
-	private Map<String, BiometricRecord> addBiometricDocuments(String individualBiometrics, String cbeffData) throws Exception {
+
+	private Map<String, BiometricRecord> addBiometricDocuments(String individualBiometrics, String cbeffData)
+			throws Exception {
 		Map<String, BiometricRecord> bioValues = new HashMap<String, BiometricRecord>();
 		BiometricRecord biometricRecord = new BiometricRecord();
 		byte[] data = CryptoUtil.decodeURLSafeBase64(cbeffData);
@@ -249,36 +243,39 @@ public class PacketCreator {
 			cbeffUtil.validateXML(data);
 			byte[] newCbeffData = cbeffUtil.createXML(cbeffUtil.getBIRDataFromXML(data));
 			System.out.println("newCbeffData:" + CryptoUtil.encodeToURLSafeBase64(newCbeffData));
-			List<BIR> birs = cbeffUtil.getBIRDataFromXML(newCbeffData);			
+			List<BIR> birs = cbeffUtil.getBIRDataFromXML(newCbeffData);
 			for (BIR bir : birs) {
-				if(bir.getBdbInfo().getType().toString().contains("Face") || bir.getBdbInfo().getType().toString().contains("Iris")
-						||bir.getBdbInfo().getType().toString().contains("Finger")) {
-//				BIR newBir = new BIR.BIRBuilder()
-//						.withOthers("PAYLOAD",getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))
-//						.withBdb(bir.getBdb())
-//						.withSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(), new String(bir.getBdb()))).getBytes()).build();
-//				newBir.setBirs(bir.getBirs());
 				BIR newBir = new BIR();
-				//newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(), new String(bir.getBdb()))).getBytes());
 				newBir.setBdb(bir.getBdb());
 				newBir.setBdbInfo(bir.getBdbInfo());
 				newBir.setBirInfo(bir.getBirInfo());
 				newBir.setBirs(bir.getBirs());
-				newBir.setCbeffversion(bir.getCbeffversion());				
-				newBir.setVersion(bir.getVersion());				
+				newBir.setCbeffversion(bir.getCbeffversion());
+				newBir.setVersion(bir.getVersion());
 				newBir.setOthers(getBIROthers(bir.getBdbInfo().getType().toString()));
-				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(), CryptoUtil.encodeToURLSafeBase64(bir.getBdb()),getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))).getBytes());
+				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(),
+						CryptoUtil.encodeToURLSafeBase64(bir.getBdb()),
+						getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))).getBytes());
 				segments.add(newBir);
-				
-//				try {
-////					String token = BiometricsSignatureHelper.extractJWTToken(newBir);
-////					System.out.println("token :: " + token);
-////					validateJWTToken("",token);					
-//				}catch(Exception wx) {
-//					wx.printStackTrace();
-//					System.out.println("Error from Packet Creator:: " +wx.getMessage());;
-//				}
+
+				try {
+					String token = BiometricsSignatureHelper.extractJWTToken(newBir);
+					if (validateJWTToken("", token)) {
+						System.out.println("Validating Token success for :: " + bir.getBdbInfo().getType().toString()
+								+ " " + bir.getBdbInfo().getSubtype().toString());
+
+					} else {
+						System.out.println("Validating Token fail for :: " + bir.getBdbInfo().getType().toString() + " "
+								+ bir.getBdbInfo().getSubtype().toString());
+
+					}
+
+				} catch (Exception wx) {
+					wx.printStackTrace();
+					System.out.println("Error from Packet Creator:: " + wx.getMessage());
+					;
 				}
+//				}
 			}
 			biometricRecord.setSegments(segments);
 			bioValues.put(individualBiometrics, biometricRecord);
@@ -287,88 +284,131 @@ public class PacketCreator {
 		}
 		return bioValues;
 	}
-	
-	public String getSignature(String data){
+
+	public String getSignature(String data) {
 		if (data == null || data.isEmpty()) {
-			
+
 		}
 		Pattern pattern = Pattern.compile(SBIConstant.BIOMETRIC_SEPERATOR);
 		Matcher matcher = pattern.matcher(data);
-		if(matcher.find()) {
-			//returns header..signature
-			return data.replace(matcher.group(1),"");
+		if (matcher.find()) {
+			// returns header..signature
+			return data.replace(matcher.group(1), "");
 		}
 
 		return null;
 	}
-	private HashMap<String, String> getBIROthers(String type){
+
+	private HashMap<String, String> getBIROthers(String type) {
 		HashMap<String, String> others = new HashMap<>();
-		if(type.contains("FACE")) {
-			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+		if (type.contains("FACE")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration", SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE,
+					SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE,
+					env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
 			others.put("SPEC_VERSION", "0.9.5");
 			others.put("RETRIES", "1");
 			others.put("FORCE_CAPTURED", "false");
 			others.put("EXCEPTION", "false");
-			
+
 			try {
-				others.put("PAYLOAD", objectMapper.writeValueAsString(deviceHelper.getDeviceInfo()));
+				others.put("PAYLOAD", mapper.writeValueAsString(deviceHelper.getDeviceInfo()));
 			} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			others.put("SDK_SCORE", "0.0");
+			if (!capturedRegisteredDevices.containsKey(SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE)) {
+				DeviceMetaInfo deviceMetaInfo = new DeviceMetaInfo();
+				DeviceInfo deviceInfo = new DeviceInfo();
+				deviceInfo = deviceHelper.getDeviceInfo();
+				deviceMetaInfo.setDigitalId(deviceHelper.getDigitalId());
+				deviceMetaInfo.setDeviceCode(deviceInfo.getDeviceCode());
+				deviceMetaInfo.setDeviceServiceVersion(deviceInfo.getServiceVersion());
+				capturedRegisteredDevices.put(SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, deviceMetaInfo);
+			}
 			return others;
 		}
-		if(type.contains("FINGER")) {
-			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+		if (type.contains("FINGER")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration", SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER,
+					SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP,
+					env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
 			others.put("SPEC_VERSION", "0.9.5");
 			others.put("RETRIES", "1");
 			others.put("FORCE_CAPTURED", "false");
 			others.put("EXCEPTION", "false");
 //			others.put("PAYLOAD", deviceHelper.getDeviceInfoDto().getDeviceInfo());
 			try {
-				others.put("PAYLOAD", objectMapper.writeValueAsString(deviceHelper.getDeviceInfo()));
+				others.put("PAYLOAD", mapper.writeValueAsString(deviceHelper.getDeviceInfo()));
 			} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
 			others.put("SDK_SCORE", "0.0");
+			if (!capturedRegisteredDevices.containsKey(SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER)) {
+				DeviceMetaInfo deviceMetaInfo = new DeviceMetaInfo();
+				DeviceInfo deviceInfo = new DeviceInfo();
+				deviceInfo = deviceHelper.getDeviceInfo();
+				deviceMetaInfo.setDigitalId(deviceHelper.getDigitalId());
+				deviceMetaInfo.setDeviceCode(deviceInfo.getDeviceCode());
+				deviceMetaInfo.setDeviceServiceVersion(deviceInfo.getServiceVersion());
+				capturedRegisteredDevices.put(SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, deviceMetaInfo);
+			}
+
 			return others;
-			
+
 		}
-		if(type.contains("IRIS")) {
-			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+		if (type.contains("IRIS")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration", SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS,
+					SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE,
+					env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
 			others.put("SPEC_VERSION", "0.9.5");
 			others.put("RETRIES", "1");
 			others.put("FORCE_CAPTURED", "false");
 			others.put("EXCEPTION", "false");
-//			others.put("PAYLOAD", deviceHelper.getDeviceInfoDto().getDeviceInfo());
 			try {
-				others.put("PAYLOAD", objectMapper.writeValueAsString(deviceHelper.getDeviceInfo()));
+				others.put("PAYLOAD", mapper.writeValueAsString(deviceHelper.getDeviceInfo()));
 			} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
 			others.put("SDK_SCORE", "0.0");
+			if (!capturedRegisteredDevices.containsKey(SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS)) {
+				DeviceMetaInfo deviceMetaInfo = new DeviceMetaInfo();
+				DeviceInfo deviceInfo = new DeviceInfo();
+				deviceInfo = deviceHelper.getDeviceInfo();
+				deviceMetaInfo.setDigitalId(deviceHelper.getDigitalId());
+				deviceMetaInfo.setDeviceCode(deviceInfo.getDeviceCode());
+				deviceMetaInfo.setDeviceServiceVersion(deviceInfo.getServiceVersion());
+				capturedRegisteredDevices.put(SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, deviceMetaInfo);
+			}
 			return others;
 		}
 		return others;
 	}
-	private String getSignBioData(String type,String bioData, String payload){
+
+	private String getSignBioData(String type, String bioData, String payload) {
 		String bioDataToSign = payload.replace("<bioValue>", bioData);
-		if(type.contains("FACE")) {
-			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
-			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE, bioDataToSign);
+		if (type.contains("FACE")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration", SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE,
+					SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE,
+					env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FACE,
+					SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FACE, bioDataToSign);
 		}
-		if(type.contains("FINGER")) {
-			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
-			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP, bioDataToSign);			
+		if (type.contains("FINGER")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration", SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER,
+					SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP,
+					env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_FINGER,
+					SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_FINGER_SLAP, bioDataToSign);
 		}
-		if(type.contains("IRIS")) {
-			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration",SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE,env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
-			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS, SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE, bioDataToSign);		
+		if (type.contains("IRIS")) {
+			SBIDeviceHelper deviceHelper = new SBIDeviceHelper("Registration", SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS,
+					SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE,
+					env.getProperty("mosip.mock.sbi.file.face.keys.keystorefilename"));
+			return deviceHelper.getSignBioMetricsDataDto(SBIConstant.MOSIP_BIOMETRIC_TYPE_IRIS,
+					SBIConstant.MOSIP_BIOMETRIC_SUBTYPE_IRIS_DOUBLE, bioDataToSign);
 		}
 		return null;
 	}
@@ -388,11 +428,11 @@ public class PacketCreator {
 	}
 
 	private Map<String, String> getRegistrationMetaData(String registrationType, String uin, String centerId,
-															String machineId) throws JsonProcessingException {
+			String machineId) throws JsonProcessingException {
 
 		Map<String, String> metadata = new HashMap<>();
 
-		FieldValue[] fieldValues = new FieldValue[4];
+		FieldValue[] fieldValues = new FieldValue[3];
 		FieldValue fieldValue0 = new FieldValue();
 		fieldValue0.setLabel(PacketMetaInfoConstants.CENTERID);
 		fieldValue0.setValue(centerId);
@@ -407,51 +447,43 @@ public class PacketCreator {
 		fieldValue2.setLabel(PacketMetaInfoConstants.REGISTRATION_TYPE);
 		fieldValue2.setValue(registrationType);
 		fieldValues[2] = fieldValue2;
-		
-		FieldValue fieldValue3 = new FieldValue();
-		fieldValue2.setLabel(PacketMetaInfoConstants.REGISTRATION_TYPE);
-		fieldValue2.setValue(registrationType);		
-		
-		
+
 		metadata.put("metaData", JsonUtils.javaObjectToJsonString(fieldValues));
 		setOperationsData(metadata);
+		try {
+			metadata.put("capturedRegisteredDevices", mapper.writeValueAsString(capturedRegisteredDevices.values()));
+		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return metadata;
 	}
-	
-	private void setOperationsData(Map<String, String> metaInfoMap){
 
+	private void setOperationsData(Map<String, String> metaInfoMap) {
 		Map<String, String> operationsDataMap = new LinkedHashMap<>();
 		operationsDataMap.put(PacketMetaInfoConstants.META_OFFICER_ID, "globaladmin");
-//		operationsDataMap.put(PacketMetaInfoConstants.META_OFFICER_BIOMETRIC_FILE,
-//				registrationDTO.getOfficerBiometrics().isEmpty() ? null : officerBiometricsFileName);
-//		operationsDataMap.put(PacketMetaInfoConstants.META_SUPERVISOR_BIOMETRIC_FILE,
-//				registrationDTO.getSupervisorBiometrics().isEmpty() ? null : supervisorBiometricsFileName);
-		operationsDataMap.put(PacketMetaInfoConstants.META_SUPERVISOR_ID,
-		"globaladmin");
-		operationsDataMap.put(PacketMetaInfoConstants.META_SUPERVISOR_PWD,
-				String.valueOf("Techno@123"));
-		operationsDataMap.put(PacketMetaInfoConstants.META_OFFICER_PWD,
-				String.valueOf("Techno@123"));
+		operationsDataMap.put(PacketMetaInfoConstants.META_OFFICER_BIOMETRIC_FILE, null);
+		operationsDataMap.put(PacketMetaInfoConstants.META_SUPERVISOR_ID, null);
+		operationsDataMap.put(PacketMetaInfoConstants.META_SUPERVISOR_BIOMETRIC_FILE, null);
+		operationsDataMap.put(PacketMetaInfoConstants.META_SUPERVISOR_PWD, "false");
+		operationsDataMap.put(PacketMetaInfoConstants.META_OFFICER_PWD, "true");
 		operationsDataMap.put(PacketMetaInfoConstants.META_SUPERVISOR_PIN, null);
 		operationsDataMap.put(PacketMetaInfoConstants.META_OFFICER_PIN, null);
-		operationsDataMap.put(PacketMetaInfoConstants.META_SUPERVISOR_OTP,
-				String.valueOf("false"));
-		operationsDataMap.put(PacketMetaInfoConstants.META_OFFICER_OTP,
-				String.valueOf("false"));
-
+		operationsDataMap.put(PacketMetaInfoConstants.META_SUPERVISOR_OTP, "false");
+		operationsDataMap.put(PacketMetaInfoConstants.META_OFFICER_OTP, "false");
 		metaInfoMap.put(PacketMetaInfoConstants.META_INFO_OPERATIONS_DATA,
 				getJsonString(getLabelValueDTOListString(operationsDataMap)));
-
 	}
-	
-	private String getJsonString(Object object){
+
+	private String getJsonString(Object object) {
 		try {
-			return objectMapper.writeValueAsString(object);
+			return mapper.writeValueAsString(object);
 		} catch (IOException ioException) {
 			//
 		}
 		return null;
 	}
+
 	private List<Map<String, String>> getLabelValueDTOListString(Map<String, String> operationsDataMap) {
 		List<Map<String, String>> labelValueMap = new LinkedList<>();
 		for (Entry<String, String> fieldName : operationsDataMap.entrySet()) {
@@ -472,22 +504,20 @@ public class PacketCreator {
 		JSONObject ridJson;
 		try {
 
-			logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-					"", "PacketGeneratorServiceImpl::generateRegistrationId():: RIDgeneration Api call started");
+			logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+					"PacketGeneratorServiceImpl::generateRegistrationId():: RIDgeneration Api call started");
 			responseWrapper = (ResponseWrapper<?>) restClientService.getApi(ApiName.RIDGENERATION, pathsegments, "", "",
 					ResponseWrapper.class);
 			if (CollectionUtils.isEmpty(responseWrapper.getErrors())) {
 				ridJson = mapper.readValue(mapper.writeValueAsString(responseWrapper.getResponse()), JSONObject.class);
-				logger.debug(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), "",
+				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 						"\"PacketGeneratorServiceImpl::generateRegistrationId():: RIDgeneration Api call  ended with response data : "
 								+ JsonUtil.objectMapperObjectToJson(ridJson));
 				rid = (String) ridJson.get("rid");
 
 			} else {
 				List<ServiceError> error = responseWrapper.getErrors();
-				logger.debug(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), "",
+				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 						"\"PacketGeneratorServiceImpl::generateRegistrationId():: RIDgeneration Api call  ended with response data : "
 								+ error.get(0).getMessage());
 				throw new BaseCheckedException(ResidentErrorCode.BASE_EXCEPTION.getErrorCode(),
@@ -503,16 +533,15 @@ public class PacketCreator {
 		}
 		return rid;
 	}
-	
-	private void validateJWTToken(String id, String token)
-			{
+
+	private boolean validateJWTToken(String id, String token) {
 		JWTSignatureVerifyRequestDto jwtSignatureVerifyRequestDto = new JWTSignatureVerifyRequestDto();
-		
+
 		jwtSignatureVerifyRequestDto.setApplicationId("REGISTRATION");
 		jwtSignatureVerifyRequestDto.setReferenceId("SIGN");
 		jwtSignatureVerifyRequestDto.setJwtSignatureData(token);
 		jwtSignatureVerifyRequestDto.setActualData(token.split("\\.")[1]);
-		System.out.println("jwtSignatureVerifyRequestDto actual Data :: " + jwtSignatureVerifyRequestDto.getActualData());
+//		System.out.println("jwtSignatureVerifyRequestDto actual Data :: " + jwtSignatureVerifyRequestDto.getActualData());
 
 		// in packet validator stage we are checking only the structural part of the
 		// packet so setting validTrust to false
@@ -522,15 +551,17 @@ public class PacketCreator {
 
 		request.setRequest(jwtSignatureVerifyRequestDto);
 		request.setVersion("1.0");
-		DateTimeFormatter format = DateTimeFormatter.ofPattern(env.getProperty("mosip.registration.processor.datetime.pattern"));
-		LocalDateTime localdatetime = LocalDateTime
-				.parse(DateUtils.getUTCCurrentDateTimeString(env.getProperty("mosip.registration.processor.datetime.pattern")), format);
+		DateTimeFormatter format = DateTimeFormatter
+				.ofPattern(env.getProperty("mosip.registration.processor.datetime.pattern"));
+		LocalDateTime localdatetime = LocalDateTime.parse(
+				DateUtils.getUTCCurrentDateTimeString(env.getProperty("mosip.registration.processor.datetime.pattern")),
+				format);
 		request.setRequesttime(localdatetime.toString());
 
 		ResponseWrapper<?> responseWrapper = null;
 		try {
-			responseWrapper = (ResponseWrapper<?>) restClientService
-					.postApi(env.getProperty("JWTVERIFY"), MediaType.APPLICATION_JSON, request, ResponseWrapper.class);
+			responseWrapper = (ResponseWrapper<?>) restClientService.postApi(env.getProperty("JWTVERIFY"),
+					MediaType.APPLICATION_JSON, request, ResponseWrapper.class);
 		} catch (ApisResourceAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -538,36 +569,39 @@ public class PacketCreator {
 		if (responseWrapper.getResponse() != null) {
 			JWTSignatureVerifyResponseDto jwtResponse = null;
 			try {
-				jwtResponse = mapper.readValue(
-						mapper.writeValueAsString(responseWrapper.getResponse()), JWTSignatureVerifyResponseDto.class);
+				jwtResponse = mapper.readValue(mapper.writeValueAsString(responseWrapper.getResponse()),
+						JWTSignatureVerifyResponseDto.class);
 			} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
 			if (!jwtResponse.isSignatureValid()) {
-				try {
-					logger.error(LoggerFileConstant.REGISTRATIONID.toString(), id,
-							"Request -> " + JsonUtils.javaObjectToJsonString(request)
-							," Response -> " + JsonUtils.javaObjectToJsonString(responseWrapper));
-				} catch (JsonProcessingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+//				try {
+////					logger.error(LoggerFileConstant.REGISTRATIONID.toString(), id,
+////							"Request -> " + JsonUtils.javaObjectToJsonString(request)
+////							," Response -> " + JsonUtils.javaObjectToJsonString(responseWrapper));
+//				} catch (JsonProcessingException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+				return false;
+			} else {
+				System.out.println("Signature Validation is success");
+				return true;
 			}
 		} else {
 			try {
 				logger.error(LoggerFileConstant.REGISTRATIONID.toString(), id,
-						"Request -> " + JsonUtils.javaObjectToJsonString(request)
-						," Response -> " + JsonUtils.javaObjectToJsonString(responseWrapper));
+						"Request -> " + JsonUtils.javaObjectToJsonString(request),
+						" Response -> " + JsonUtils.javaObjectToJsonString(responseWrapper));
 			} catch (JsonProcessingException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-
+			return false;
 		}
 
 	}
-
 
 }

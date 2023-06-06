@@ -11,6 +11,8 @@ public class PacketMetaInfoConstants {
     public static final String VID = "vid";
     public static final String CARD_TYPE = "CARDTYPE";
     
+    public static final String METADATA = "metaData";
+    
 	public static final String META_OFFICER_ID ="officerId";
 	public static final String META_OFFICER_BIOMETRIC_FILE ="officerBiometricFileName";
 	public static final String META_SUPERVISOR_ID ="supervisorId";

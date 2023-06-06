@@ -23,4 +23,5 @@ public class DeviceInfo {
 	public String[] deviceSubId;
 	public String callbackId;
 	public String bioValue;
+	public String timestamp;
 }

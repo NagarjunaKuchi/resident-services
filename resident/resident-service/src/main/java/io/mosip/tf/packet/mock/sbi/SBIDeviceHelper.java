@@ -1,6 +1,7 @@
 package io.mosip.tf.packet.mock.sbi;
 
 import io.mosip.kernel.core.logger.spi.Logger;
+import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.core.util.DateUtils;
 import io.mosip.tf.packet.config.LoggerConfiguration;
 import io.mosip.tf.packet.dto.DeviceInfo;
@@ -51,15 +52,13 @@ public class SBIDeviceHelper {
     protected int qualityScore;
     protected boolean isQualityScoreSet;
     private boolean scoreFromIso = false;
-
-	private String keystoreFilePath;
-	
+    
 	@Autowired
 	Environment env;
 			
 	public SBIDeviceHelper(String purpose, String deviceType, String deviceSubType, String keystoreFilePath) {
 		super();
-		setKeystoreFilePath(keystoreFilePath);
+		//setKeystoreFilePath(keystoreFilePath);
 		setPurpose (purpose);
 		setDeviceType (deviceType);
 		setDeviceSubType (deviceSubType);
@@ -217,8 +216,7 @@ public class SBIDeviceHelper {
 		String keyAlias = null;
 		String keyPwd = null;
 		FileInputStream inputStream = null;
-		try {
-			String purpose = getPurpose ();
+		try {			
 			ObjectMapper objectMapper = new ObjectMapper();
 			switch (deviceType)
 			{
@@ -299,6 +297,7 @@ public class SBIDeviceHelper {
 	            
 				deviceInfo = objectMapper.readValue(jsonFile, DeviceInfo.class);
 				deviceInfo.setBioValue("<bioValue>");
+				deviceInfo.setTimestamp(formatToISOString(DateUtils.getUTCCurrentDateTime()));
 				if (deviceInfo != null)
 				{
 					deviceInfo.setDigitalId(getUnsignedDigitalId (digitalId, false));
@@ -521,7 +520,7 @@ public class SBIDeviceHelper {
 	            //LOGGER.Info("\nPrivate Key:");
 	            //LOGGER.Info(key);
 	            signedBioMetricsDataDto = JwtUtility.getJwt(currentBioData.getBytes("UTF-8"), key, (X509Certificate) cert);
-    		System.out.println("signedBioMetrics :: " + signedBioMetricsDataDto);
+      		//System.out.println("signedBioMetrics :: " + signedBioMetricsDataDto);
         		return signedBioMetricsDataDto ;
 			}	
 		} catch (Exception ex) {
@@ -718,13 +717,13 @@ public class SBIDeviceHelper {
 		}
 		return null;
 	}
-	public void setKeystoreFilePath(String keystoreFilePath) {
-		try {
-			this.keystoreFilePath = keystoreFilePath != null ? keystoreFilePath : FileHelper.getCanonicalPath();
-		} catch (IOException ex) {
-			LOGGER.error("setKeystoreFilePath :: " + keystoreFilePath , ex);
-		}
-	}
+//	public void setKeystoreFilePath(String keystoreFilePath) {
+//		try {
+//			this.keystoreFilePath = keystoreFilePath != null ? keystoreFilePath : FileHelper.getCanonicalPath();
+//		} catch (IOException ex) {
+//			LOGGER.error("setKeystoreFilePath :: " + keystoreFilePath , ex);
+//		}
+//	}
 	
 	public String getDeviceType() {
 		return deviceType;
@@ -892,6 +891,5 @@ public class SBIDeviceHelper {
 			value = 1;
 		
 		return value;
-	}		
-
+	}
 }
