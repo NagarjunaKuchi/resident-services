@@ -12,5 +12,7 @@ public interface PacketCreatorService {
 	public RegStatusCheckResponseDTO getRidStatus(RequestDTO dto) throws ApisResourceAccessException;
 	
 	public ResidentUpdateResponseDTO createPacket(PacketCreateRequestDto dto) throws ResidentServiceCheckedException;
+	
+	public String signBiometrics(String cbeff);
 
 }

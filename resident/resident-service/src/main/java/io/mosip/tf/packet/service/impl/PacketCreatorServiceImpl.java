@@ -228,6 +228,7 @@ public class PacketCreatorServiceImpl implements PacketCreatorService {
 			JSONObject proofOfBirthJson = JsonUtil.getJSONObject(demographicIdentity, pobMapping);
 			regProcReqUpdateDto.setProofOfDateOfBirth(getDocumentValue(proofOfBirthJson, documents));
 
+			regProcReqUpdateDto.setIdSchemaVersion(demographicIdentity.get("IDSchemaVersion").toString());;
 			PacketGeneratorResDto response = packetCreator.createPacket(regProcReqUpdateDto);
 			Map<String, Object> additionalAttributes = new HashMap<>();
 			additionalAttributes.put("RID", response.getRegistrationId());
@@ -438,5 +439,10 @@ public class PacketCreatorServiceImpl implements PacketCreatorService {
 			throw new ValidationFailedException(ResidentErrorCode.INDIVIDUAL_ID_UIN_MISMATCH.getErrorCode(),
 				ResidentErrorCode.INDIVIDUAL_ID_UIN_MISMATCH.getErrorMessage());
 		}
+	}
+
+	@Override
+	public String signBiometrics(String cbeff) {
+		return packetCreator.signBiometrics(cbeff);
 	}
 }

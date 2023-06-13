@@ -163,8 +163,8 @@ public class PacketCreator {
 				packetDto.setId(generateRegistrationId(request.getCenterId(), request.getMachineId()));
 				packetDto.setSource(utilities.getDefaultSource());
 				packetDto.setProcess(RegistrationType.NEW.toString());
-				packetDto.setSchemaVersion(idschemaVersion);
-				packetDto.setSchemaJson(idSchemaUtil.getIdSchema(Double.valueOf(idschemaVersion)));
+				packetDto.setSchemaVersion(request.getIdSchemaVersion());
+				packetDto.setSchemaJson(idSchemaUtil.getIdSchema(Double.valueOf(request.getIdSchemaVersion())));
 				packetDto.setFields(idMap);
 				packetDto.setDocuments(map);
 				packetDto.setAudits(utilities.generateAudit(packetDto.getId()));
@@ -172,7 +172,6 @@ public class PacketCreator {
 				packetDto.setRefId(request.getCenterId() + "_" + request.getMachineId());
 				packetDto.setBiometrics(
 						addBiometricDocuments("individualBiometrics", request.getIndividualBiometrics()));
-				;
 				packetDto.setMetaInfo(getRegistrationMetaData(request.getIdValue(), request.getRequestType().toString(),
 						request.getCenterId(), request.getMachineId()));
 				List<PacketInfo> packetInfos = packetWriter.createPacket(packetDto);
@@ -236,30 +235,34 @@ public class PacketCreator {
 	private Map<String, BiometricRecord> addBiometricDocuments(String individualBiometrics, String cbeffData)
 			throws Exception {
 		Map<String, BiometricRecord> bioValues = new HashMap<String, BiometricRecord>();
+		if(cbeffData == null ||cbeffData.isEmpty()) {
+			return bioValues;
+		}
+		
 		BiometricRecord biometricRecord = new BiometricRecord();
 		byte[] data = CryptoUtil.decodeURLSafeBase64(cbeffData);
 		List<BIR> segments = new ArrayList<>();
 		try {
 			cbeffUtil.validateXML(data);
-			byte[] newCbeffData = cbeffUtil.createXML(cbeffUtil.getBIRDataFromXML(data));
-			System.out.println("newCbeffData:" + CryptoUtil.encodeToURLSafeBase64(newCbeffData));
-			List<BIR> birs = cbeffUtil.getBIRDataFromXML(newCbeffData);
+		//	byte[] newCbeffData = cbeffUtil.createXML(cbeffUtil.getBIRDataFromXML(data));
+			//System.out.println("newCbeffData:" + CryptoUtil.encodeToURLSafeBase64(newCbeffData));
+			List<BIR> birs = cbeffUtil.getBIRDataFromXML(data);
 			for (BIR bir : birs) {
-				BIR newBir = new BIR();
-				newBir.setBdb(bir.getBdb());
-				newBir.setBdbInfo(bir.getBdbInfo());
-				newBir.setBirInfo(bir.getBirInfo());
-				newBir.setBirs(bir.getBirs());
-				newBir.setCbeffversion(bir.getCbeffversion());
-				newBir.setVersion(bir.getVersion());
-				newBir.setOthers(getBIROthers(bir.getBdbInfo().getType().toString()));
-				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(),
-						CryptoUtil.encodeToURLSafeBase64(bir.getBdb()),
-						getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))).getBytes());
-				segments.add(newBir);
+//				BIR newBir = new BIR();
+//				newBir.setBdb(bir.getBdb());
+//				newBir.setBdbInfo(bir.getBdbInfo());
+//				newBir.setBirInfo(bir.getBirInfo());
+//				newBir.setBirs(bir.getBirs());
+//				newBir.setCbeffversion(bir.getCbeffversion());
+//				newBir.setVersion(bir.getVersion());
+//				newBir.setOthers(getBIROthers(bir.getBdbInfo().getType().toString()));
+//				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(),
+//						CryptoUtil.encodeToURLSafeBase64(bir.getBdb()),
+//						getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))).getBytes());
+				segments.add(bir);
 
 				try {
-					String token = BiometricsSignatureHelper.extractJWTToken(newBir);
+					String token = BiometricsSignatureHelper.extractJWTToken(bir);
 					if (validateJWTToken("", token)) {
 						System.out.println("Validating Token success for :: " + bir.getBdbInfo().getType().toString()
 								+ " " + bir.getBdbInfo().getSubtype().toString());
@@ -273,7 +276,6 @@ public class PacketCreator {
 				} catch (Exception wx) {
 					wx.printStackTrace();
 					System.out.println("Error from Packet Creator:: " + wx.getMessage());
-					;
 				}
 //				}
 			}
@@ -283,6 +285,46 @@ public class PacketCreator {
 			throw e;
 		}
 		return bioValues;
+	}
+	
+	public String signBiometrics(String cbeffData) {
+		try {
+			byte[] data = CryptoUtil.decodeURLSafeBase64(cbeffData);
+			cbeffUtil.validateXML(data);
+			List<BIR> birs = cbeffUtil.getBIRDataFromXML(data);
+			List<BIR> segments = new ArrayList<>();
+			for (BIR bir : birs) {
+				BIR newBir = new BIR();
+				newBir.setBdb(bir.getBdb());
+				newBir.setBdbInfo(bir.getBdbInfo());
+				newBir.setBirInfo(bir.getBirInfo());
+				newBir.setBirs(bir.getBirs());
+				newBir.setCbeffversion(bir.getCbeffversion());
+				newBir.setVersion(bir.getVersion());
+				newBir.setOthers(getBIROthers(bir.getBdbInfo().getType().toString()));
+				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(),
+						CryptoUtil.encodeToURLSafeBase64(bir.getBdb()),
+						getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))).getBytes());
+				segments.add(newBir);
+				String token = BiometricsSignatureHelper.extractJWTToken(newBir);
+				if (validateJWTToken("", token)) {
+					System.out.println("Validating Token success for :: " + bir.getBdbInfo().getType().toString() + " "
+							+ bir.getBdbInfo().getSubtype().toString());
+				} else {
+					System.out.println("Validating Token fail for :: " + bir.getBdbInfo().getType().toString() + " "
+							+ bir.getBdbInfo().getSubtype().toString());
+					signBiometrics(cbeffData);
+
+				}
+			}
+			byte[] newCbeffData = cbeffUtil.createXML(segments);
+			return CryptoUtil.encodeToURLSafeBase64(newCbeffData);
+
+		} catch (Exception e) {
+
+		}
+
+		return "";
 	}
 
 	public String getSignature(String data) {

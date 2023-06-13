@@ -45,5 +45,6 @@ public class ResidentUpdateDto implements Serializable {
 	private String proofOfRelationship;
 	private String proofOfDateOfBirth;
 	private String individualBiometrics;
+	private String idSchemaVersion;
 
 }
