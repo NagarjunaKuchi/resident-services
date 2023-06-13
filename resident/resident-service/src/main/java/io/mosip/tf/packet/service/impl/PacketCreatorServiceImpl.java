@@ -439,4 +439,11 @@ public class PacketCreatorServiceImpl implements PacketCreatorService {
 				ResidentErrorCode.INDIVIDUAL_ID_UIN_MISMATCH.getErrorMessage());
 		}
 	}
+
+	@Override
+	public ResidentUpdateResponseDTO signBiometrics(String cbeff) {
+		ResidentUpdateResponseDTO response = new ResidentUpdateResponseDTO();
+		response.setMessage(packetCreator.signBiometrics(cbeff));;
+		return response;
+	}
 }

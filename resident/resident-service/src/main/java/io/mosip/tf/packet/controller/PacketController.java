@@ -4,6 +4,7 @@ import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -52,7 +53,16 @@ public class PacketController {
 		audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.VALIDATE_REQUEST,"Create Packet API"));
 		validator.validateUpdateRequest(requestDTO);
 		ResponseWrapper<ResidentUpdateResponseDTO> response = new ResponseWrapper<>();
-		response.setResponse(packetCreatorService.createPacket(requestDTO.getRequest()));
+		response.setResponse(packetCreatorService.signBiometrics(requestDTO.getRequest().getIndividualBiometrics()));
 		return response;
 	}
+	
+//	@ResponseFilter
+//	@PostMapping(value = "/req/sign/bio")
+//	public ResponseWrapper<String> signBiometrics(
+//			@Valid @RequestBody RequestWrapper<String> requestDTO){
+//		ResponseWrapper<String> response = new ResponseWrapper<>();
+//		response.setResponse(packetCreatorService.signBiometrics(requestDTO.getRequest()));
+//		return response;
+//	}
 }
