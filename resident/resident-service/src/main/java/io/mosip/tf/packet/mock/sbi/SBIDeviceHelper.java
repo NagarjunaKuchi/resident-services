@@ -266,7 +266,7 @@ public class SBIDeviceHelper {
 				break;
 			}
 
-		    keyStoreFileName = FileHelper.getCanonicalPath () +"/Biometric Devices/Face/Keys/Device.p12"; 
+		    keyStoreFileName = FileHelper.getCanonicalPath () +"/Biometric Devices/Face/Keys/Device_Govstack.p12"; 
 					//env.getProperty(SBIConstant.MOSIP_STREAM_FACE_KEYSTORE_FILE_NAME);
 			keyAlias = "Device";//env.getProperty(SBIConstant.MOSIP_STREAM_FACE_KEY_ALIAS);
 			keyPwd = "mosipface";//env.getProperty(SBIConstant.MOSIP_STREAM_FACE_KEYSTORE_PWD);
@@ -381,7 +381,7 @@ public class SBIDeviceHelper {
 //				break;
 //			}
 
-		    keyStoreFileName = FileHelper.getCanonicalPath () +"/Biometric Devices/Face/Keys/Device.p12"; 
+		    keyStoreFileName = FileHelper.getCanonicalPath () +"/Biometric Devices/Face/Keys/Device_Govstack.p12"; 
 					//env.getProperty(SBIConstant.MOSIP_STREAM_FACE_KEYSTORE_FILE_NAME);
 			keyAlias = "Device";//env.getProperty(SBIConstant.MOSIP_STREAM_FACE_KEY_ALIAS);
 			keyPwd = "mosipface";//env.getProperty(SBIConstant.MOSIP_STREAM_FACE_KEYSTORE_PWD);
@@ -492,7 +492,7 @@ public class SBIDeviceHelper {
 //				break;
 //			}
 
-		    keyStoreFileName = FileHelper.getCanonicalPath () +"/Biometric Devices/Face/Keys/Device.p12"; 
+		    keyStoreFileName = FileHelper.getCanonicalPath () +"/Biometric Devices/Face/Keys/Device_Govstack.p12"; 
 					//env.getProperty(SBIConstant.MOSIP_STREAM_FACE_KEYSTORE_FILE_NAME);
 			keyAlias = "Device";//env.getProperty(SBIConstant.MOSIP_STREAM_FACE_KEY_ALIAS);
 			keyPwd = "mosipface";//env.getProperty(SBIConstant.MOSIP_STREAM_FACE_KEYSTORE_PWD);

@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import org.apache.commons.io.IOUtils;
+import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ import io.mosip.kernel.biometrics.entities.BiometricRecord;
 import io.mosip.kernel.biometrics.spi.CbeffUtil;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
+import io.mosip.kernel.core.exception.BiometricSignatureValidationException;
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.kernel.core.exception.ServiceError;
 import io.mosip.kernel.core.logger.spi.Logger;
@@ -304,17 +306,7 @@ public class PacketCreator {
 				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(),
 						CryptoUtil.encodeToURLSafeBase64(bir.getBdb()),
 						getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))).getBytes());
-				segments.add(newBir);
-				String token = BiometricsSignatureHelper.extractJWTToken(newBir);
-				if (validateJWTToken("", token)) {
-//					System.out.println("Validating Token success for :: " + bir.getBdbInfo().getType().toString() + " "
-//							+ bir.getBdbInfo().getSubtype().toString());
-				} else {
-					System.out.println("Validating Token fail for :: " + bir.getBdbInfo().getType().toString() + " "
-							+ bir.getBdbInfo().getSubtype().toString());
-					signBiometrics(cbeffData);
-
-				}
+				segments.add(verifyAndGetBioSignature(newBir, bir));
 			}
 
 		} catch (Exception e) {
@@ -329,6 +321,35 @@ public class PacketCreator {
 			e.printStackTrace();
 		}
 		return CryptoUtil.encodeToURLSafeBase64(newCbeffData);
+	}
+
+	private BIR verifyAndGetBioSignature(BIR newBir, BIR oldBir) {
+		String token = null;
+		try {
+			token = BiometricsSignatureHelper.extractJWTToken(newBir);
+		} catch (BiometricSignatureValidationException | JSONException e) {			
+			e.printStackTrace();
+		}
+		if (validateJWTToken("", token)) {
+			System.out.println("Validating Token success for :: " + newBir.getBdbInfo().getType().toString() + " "
+					+ newBir.getBdbInfo().getSubtype().toString());
+			return newBir;
+		} else {
+			System.out.println("Validating Token fail for :: " + oldBir.getBdbInfo().getType().toString() + " "
+					+ oldBir.getBdbInfo().getSubtype().toString());
+			newBir = new BIR();
+			newBir.setBdb(oldBir.getBdb());
+			newBir.setBdbInfo(oldBir.getBdbInfo());
+			newBir.setBirInfo(oldBir.getBirInfo());
+			newBir.setBirs(oldBir.getBirs());
+			newBir.setCbeffversion(oldBir.getCbeffversion());
+			newBir.setVersion(oldBir.getVersion());
+			newBir.setOthers(getBIROthers(oldBir.getBdbInfo().getType().toString()));
+			newBir.setSb(getSignature(getSignBioData(oldBir.getBdbInfo().getType().toString(),
+					CryptoUtil.encodeToURLSafeBase64(oldBir.getBdb()),
+					getBIROthers(oldBir.getBdbInfo().getType().toString()).get("PAYLOAD"))).getBytes());
+			return verifyAndGetBioSignature(newBir,oldBir);
+		}		
 	}
 
 	public String getSignature(String data) {
