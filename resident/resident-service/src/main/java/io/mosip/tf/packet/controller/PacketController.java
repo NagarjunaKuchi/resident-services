@@ -50,8 +50,8 @@ public class PacketController {
 	public ResponseWrapper<ResidentUpdateResponseDTO> updateUin(
 			@Valid @RequestBody RequestWrapper<PacketCreateRequestDto> requestDTO)
 			throws ResidentServiceCheckedException {
-		audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.VALIDATE_REQUEST,"Create Packet API"));
-		validator.validateUpdateRequest(requestDTO);
+		//audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.VALIDATE_REQUEST,"Create Packet API"));
+		//validator.validateUpdateRequest(requestDTO);
 		ResponseWrapper<ResidentUpdateResponseDTO> response = new ResponseWrapper<>();
 		response.setResponse(packetCreatorService.createPacket(requestDTO.getRequest()));
 		return response;

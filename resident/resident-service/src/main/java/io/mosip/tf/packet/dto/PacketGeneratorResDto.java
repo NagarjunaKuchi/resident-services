@@ -4,6 +4,8 @@ import lombok.Data;
 
 import java.io.Serializable;
 
+import org.json.simple.JSONObject;
+
 /**
  * The Class PacketGeneratorResDto.
  * 
@@ -23,6 +25,8 @@ public class PacketGeneratorResDto implements Serializable {
 
 	/** The message. */
 	private String message;
+	
+	private JSONObject data; 
 
 	/**
 	 * Instantiates a new packet generator res dto.

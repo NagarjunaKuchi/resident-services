@@ -121,10 +121,11 @@ public class PacketCreator {
 	public PacketGeneratorResDto createPacket(ResidentUpdateDto request) throws BaseCheckedException, IOException {
 		logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(), request.getIdValue(),
 				"ResidentUpdateServiceImpl::createPacket()");
+
 		byte[] packetZipBytes = null;
 		audit.setAuditRequestDto(EventEnum.CREATE_PACKET);
 		PackerGeneratorFailureDto dto = new PackerGeneratorFailureDto();
-		if (validator.isValidCenter(request.getCenterId())) {
+		if (true) {
 
 			logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(),
 					request.getIdValue(),
@@ -133,73 +134,80 @@ public class PacketCreator {
 			File file = null;
 
 			try {
-				Map<String, String> idMap = new HashMap<>();
-				String demoJsonString = new String(CryptoUtil.decodeURLSafeBase64(request.getIdentityJson()));
-				JSONObject demoJsonObject = JsonUtil.objectMapperReadValue(demoJsonString, JSONObject.class);
-				LinkedHashMap<String, String> fields = (LinkedHashMap<String, String>) demoJsonObject.get(IDENTITY);
 
-				fields.keySet().forEach(key -> {
-					try {
-						idMap.put(key,
-								fields.get(key) != null ? JsonUtils.javaObjectToJsonString(fields.get(key)) : null);
-					} catch (JsonProcessingException e) {
-						throw new BaseUncheckedException(ResidentErrorCode.JSON_PROCESSING_EXCEPTION.getErrorCode(),
-								ResidentErrorCode.JSON_PROCESSING_EXCEPTION.getErrorMessage(), e);
-					}
-				});
+				if (request.getMachineId() != null) {
+					Map<String, String> idMap = new HashMap<>();
+					String demoJsonString = new String(CryptoUtil.decodeURLSafeBase64(request.getIdentityJson()));
+					JSONObject demoJsonObject = JsonUtil.objectMapperReadValue(demoJsonString, JSONObject.class);
+					LinkedHashMap<String, String> fields = (LinkedHashMap<String, String>) demoJsonObject.get(IDENTITY);
 
-				// set demographic documents
-				Map<String, Document> map = new HashMap<>();
-				if (request.getProofOfAddress() != null && !request.getProofOfAddress().isEmpty())
-					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_ADDRESS, map);
-				if (request.getProofOfDateOfBirth() != null && !request.getProofOfDateOfBirth().isEmpty())
-					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_DOB, map);
-				if (request.getProofOfRelationship() != null && !request.getProofOfRelationship().isEmpty())
-					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_RELATIONSHIP, map);
-				if (request.getProofOfIdentity() != null && !request.getProofOfIdentity().isEmpty())
-					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_IDENTITY, map);
+					fields.keySet().forEach(key -> {
+						try {
+							idMap.put(key,
+									fields.get(key) != null ? JsonUtils.javaObjectToJsonString(fields.get(key)) : null);
+						} catch (JsonProcessingException e) {
+							throw new BaseUncheckedException(ResidentErrorCode.JSON_PROCESSING_EXCEPTION.getErrorCode(),
+									ResidentErrorCode.JSON_PROCESSING_EXCEPTION.getErrorMessage(), e);
+						}
+					});
 
-				PacketDto packetDto = new PacketDto();
-				packetDto.setId(generateRegistrationId(request.getCenterId(), request.getMachineId()));
-				packetDto.setSource(utilities.getDefaultSource());
-				packetDto.setProcess(RegistrationType.NEW.toString());
-				packetDto.setSchemaVersion(request.getIdSchemaVersion());
-				packetDto.setSchemaJson(idSchemaUtil.getIdSchema(Double.valueOf(request.getIdSchemaVersion())));
-				packetDto.setFields(idMap);
-				packetDto.setDocuments(map);
-				packetDto.setAudits(utilities.generateAudit(packetDto.getId()));
-				packetDto.setOfflineMode(false);
-				packetDto.setRefId(request.getCenterId() + "_" + request.getMachineId());
-				packetDto.setBiometrics(
-						addBiometricDocuments("individualBiometrics", request.getIndividualBiometrics()));
-				packetDto.setMetaInfo(getRegistrationMetaData(request.getIdValue(), request.getRequestType().toString(),
-						request.getCenterId(), request.getMachineId()));
-				List<PacketInfo> packetInfos = packetWriter.createPacket(packetDto);
+					// set demographic documents
+					Map<String, Document> map = new HashMap<>();
+					if (request.getProofOfAddress() != null && !request.getProofOfAddress().isEmpty())
+						setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_ADDRESS, map);
+					if (request.getProofOfDateOfBirth() != null && !request.getProofOfDateOfBirth().isEmpty())
+						setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_DOB, map);
+					if (request.getProofOfRelationship() != null && !request.getProofOfRelationship().isEmpty())
+						setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_RELATIONSHIP,
+								map);
+					if (request.getProofOfIdentity() != null && !request.getProofOfIdentity().isEmpty())
+						setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_IDENTITY, map);
 
-				if (CollectionUtils.isEmpty(packetInfos) || packetInfos.iterator().next().getId() == null)
-					throw new PacketCreatorException(ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorCode(),
-							ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorMessage());
+					PacketDto packetDto = new PacketDto();
+					packetDto.setId(generateRegistrationId(request.getCenterId(), request.getMachineId()));
+					packetDto.setSource(utilities.getDefaultSource());
+					packetDto.setProcess(RegistrationType.NEW.toString());
+					packetDto.setSchemaVersion(request.getIdSchemaVersion());
+					packetDto.setSchemaJson(idSchemaUtil.getIdSchema(Double.valueOf(request.getIdSchemaVersion())));
+					packetDto.setFields(idMap);
+					packetDto.setDocuments(map);
+					packetDto.setAudits(utilities.generateAudit(packetDto.getId()));
+					packetDto.setOfflineMode(false);
+					packetDto.setRefId(request.getCenterId() + "_" + request.getMachineId());
+					packetDto.setBiometrics(
+							addBiometricDocuments("individualBiometrics", request.getIndividualBiometrics()));
+					packetDto.setMetaInfo(getRegistrationMetaData(request.getIdValue(),
+							request.getRequestType().toString(), request.getCenterId(), request.getMachineId()));
+					System.out.println(mapper.writeValueAsString(packetDto));
+					PacketGeneratorResDto response = new PacketGeneratorResDto();
+					response.setData(mapper.readValue(mapper.writeValueAsString(packetDto), JSONObject.class));					
+					return response;
+				} else {
+					// List<PacketInfo> packetInfos = packetWriter.createPacket(packetDto);
 
-				file = new File(env.getProperty("object.store.base.location") + File.separator
-						+ env.getProperty("packet.manager.account.name") + File.separator
-						+ packetInfos.iterator().next().getId() + ".zip");
+					file = new File(env.getProperty("object.store.base.location") + File.separator
+							+ env.getProperty("packet.manager.account.name") + File.separator
+							+ request.getCenterId() + ".zip");
 
-				FileInputStream fis = new FileInputStream(file);
+					FileInputStream fis = new FileInputStream(file);
 
-				packetZipBytes = IOUtils.toByteArray(fis);
+					packetZipBytes = IOUtils.toByteArray(fis);
 
-				String creationTime = DateUtils.formatToISOString(LocalDateTime.now());
+					String creationTime = DateUtils.formatToISOString(LocalDateTime.now());
 
-				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-						packetDto.getId(),
-						"ResidentUpdateServiceImpl::createPacket()::packet created and sent for sync service");
+					logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+							request.getCenterId(),
+							"ResidentUpdateServiceImpl::createPacket()::packet created and sent for sync service");
 
-				PacketGeneratorResDto packerGeneratorResDto = syncUploadEncryptionService.uploadUinPacket(
-						packetDto.getId(), creationTime, RegistrationType.NEW.toString(), packetZipBytes);
+					PacketGeneratorResDto packerGeneratorResDto = syncUploadEncryptionService.uploadUinPacket(
+							request.getCenterId(), creationTime, RegistrationType.NEW.toString(), packetZipBytes);
 
-				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-						packetDto.getId(), "ResidentUpdateServiceImpl::createPacket()::packet synched and uploaded");
-				return packerGeneratorResDto;
+					logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+							request.getCenterId(),
+							"ResidentUpdateServiceImpl::createPacket()::packet synched and uploaded");
+					return packerGeneratorResDto;
+				}
+
 			} catch (Exception e) {
 				logger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 						ResidentErrorCode.BASE_EXCEPTION.getErrorMessage(), ExceptionUtils.getStackTrace(e));
@@ -235,17 +243,18 @@ public class PacketCreator {
 	private Map<String, BiometricRecord> addBiometricDocuments(String individualBiometrics, String cbeffData)
 			throws Exception {
 		Map<String, BiometricRecord> bioValues = new HashMap<String, BiometricRecord>();
-		if(cbeffData == null ||cbeffData.isEmpty()) {
+		if (cbeffData == null || cbeffData.isEmpty()) {
 			return bioValues;
 		}
-		
+
 		BiometricRecord biometricRecord = new BiometricRecord();
 		byte[] data = CryptoUtil.decodeURLSafeBase64(cbeffData);
 		List<BIR> segments = new ArrayList<>();
 		try {
 			cbeffUtil.validateXML(data);
-		//	byte[] newCbeffData = cbeffUtil.createXML(cbeffUtil.getBIRDataFromXML(data));
-			//System.out.println("newCbeffData:" + CryptoUtil.encodeToURLSafeBase64(newCbeffData));
+			// byte[] newCbeffData = cbeffUtil.createXML(cbeffUtil.getBIRDataFromXML(data));
+			// System.out.println("newCbeffData:" +
+			// CryptoUtil.encodeToURLSafeBase64(newCbeffData));
 			List<BIR> birs = cbeffUtil.getBIRDataFromXML(data);
 			for (BIR bir : birs) {
 //				BIR newBir = new BIR();
@@ -286,7 +295,7 @@ public class PacketCreator {
 		}
 		return bioValues;
 	}
-	
+
 	public String signBiometrics(String cbeffData) {
 		try {
 			byte[] data = CryptoUtil.decodeURLSafeBase64(cbeffData);

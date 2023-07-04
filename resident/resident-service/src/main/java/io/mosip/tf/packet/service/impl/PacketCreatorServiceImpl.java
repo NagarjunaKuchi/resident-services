@@ -185,6 +185,20 @@ public class PacketCreatorServiceImpl implements PacketCreatorService {
 	@Override
 	public ResidentUpdateResponseDTO createPacket(PacketCreateRequestDto dto) throws ResidentServiceCheckedException {
 		ResidentUpdateResponseDTO responseDto = new ResidentUpdateResponseDTO();
+		if(dto.getIndividualBiometrics() == null) {
+			ResidentUpdateDto regProcReqUpdateDto = new ResidentUpdateDto();
+			regProcReqUpdateDto.setMachineId(null);
+			regProcReqUpdateDto.setCenterId(dto.getIdentityJson());
+			try {
+				PacketGeneratorResDto response = packetCreator.createPacket(regProcReqUpdateDto);
+				responseDto.setData(response.getData());
+				return responseDto; 
+			} catch (BaseCheckedException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
 		try {
 			audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.VALIDATE_OTP, "",
 					"Request for Create packet"));
@@ -235,6 +249,7 @@ public class PacketCreatorServiceImpl implements PacketCreatorService {
 			audit.setAuditRequestDto(
 					EventEnum.getEventEnumWithValue(EventEnum.OBTAINED_RID_UIN_UPDATE, ""));
 			responseDto.setRegistrationId(response.getRegistrationId());
+			responseDto.setData(response.getData());
 			audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.SEND_NOTIFICATION_SUCCESS,
 					"", "Request for UIN update"));
 
