@@ -341,7 +341,7 @@ public class PacketCreator {
 			newBir.setBdb(oldBir.getBdb());
 			newBir.setBdbInfo(oldBir.getBdbInfo());
 			newBir.setBirInfo(oldBir.getBirInfo());
-			newBir.setBirs(oldBir.getBirs());
+			//newBir.setBirs(oldBir.getBirs());
 			newBir.setCbeffversion(oldBir.getCbeffversion());
 			newBir.setVersion(oldBir.getVersion());
 			newBir.setOthers(getBIROthers(oldBir.getBdbInfo().getType().toString()));
