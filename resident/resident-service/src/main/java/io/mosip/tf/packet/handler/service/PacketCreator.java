@@ -28,9 +28,10 @@ import org.springframework.web.client.HttpClientErrorException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.tf.packet.dto.DeviceInfo;
 import io.mosip.tf.packet.dto.DeviceMetaInfo;
+import io.mosip.tf.packet.dto.ExtendedBIR;
+import io.mosip.tf.packet.dto.ExtendedBiometricRecord;
 import io.mosip.commons.packet.dto.Document;
 import io.mosip.commons.packet.dto.PacketInfo;
-import io.mosip.commons.packet.dto.packet.PacketDto;
 import io.mosip.commons.packet.exception.PacketCreatorException;
 import io.mosip.commons.packet.facade.PacketWriter;
 import io.mosip.kernel.biometrics.commons.BiometricsSignatureHelper;
@@ -54,6 +55,7 @@ import io.mosip.tf.packet.constant.PacketMetaInfoConstants;
 import io.mosip.tf.packet.constant.ResidentErrorCode;
 import io.mosip.tf.packet.dto.FieldValue;
 import io.mosip.tf.packet.dto.PackerGeneratorFailureDto;
+import io.mosip.tf.packet.dto.PacketDto;
 import io.mosip.tf.packet.dto.PacketGeneratorResDto;
 import io.mosip.tf.packet.dto.RegistrationType;
 import io.mosip.tf.packet.dto.ResidentUpdateDto;
@@ -240,16 +242,16 @@ public class PacketCreator {
 		return payload;
 	}
 
-	private Map<String, BiometricRecord> addBiometricDocuments(String individualBiometrics, String cbeffData)
+	private Map<String, ExtendedBiometricRecord> addBiometricDocuments(String individualBiometrics, String cbeffData)
 			throws Exception {
-		Map<String, BiometricRecord> bioValues = new HashMap<String, BiometricRecord>();
+		Map<String, ExtendedBiometricRecord> bioValues = new HashMap<String, ExtendedBiometricRecord>();
 		if (cbeffData == null || cbeffData.isEmpty()) {
 			return bioValues;
 		}
 
-		BiometricRecord biometricRecord = new BiometricRecord();
+		ExtendedBiometricRecord biometricRecord = new ExtendedBiometricRecord();
 		byte[] data = CryptoUtil.decodeURLSafeBase64(cbeffData);
-		List<BIR> segments = new ArrayList<>();
+		List<ExtendedBIR> segments = new ArrayList<>();
 		try {
 			cbeffUtil.validateXML(data);
 			// byte[] newCbeffData = cbeffUtil.createXML(cbeffUtil.getBIRDataFromXML(data));
@@ -257,18 +259,16 @@ public class PacketCreator {
 			// CryptoUtil.encodeToURLSafeBase64(newCbeffData));
 			List<BIR> birs = cbeffUtil.getBIRDataFromXML(data);
 			for (BIR bir : birs) {
-//				BIR newBir = new BIR();
-//				newBir.setBdb(bir.getBdb());
-//				newBir.setBdbInfo(bir.getBdbInfo());
-//				newBir.setBirInfo(bir.getBirInfo());
-//				newBir.setBirs(bir.getBirs());
-//				newBir.setCbeffversion(bir.getCbeffversion());
-//				newBir.setVersion(bir.getVersion());
-//				newBir.setOthers(getBIROthers(bir.getBdbInfo().getType().toString()));
-//				newBir.setSb(getSignature(getSignBioData(bir.getBdbInfo().getType().toString(),
-//						CryptoUtil.encodeToURLSafeBase64(bir.getBdb()),
-//						getBIROthers(bir.getBdbInfo().getType().toString()).get("PAYLOAD"))).getBytes());
-				segments.add(bir);
+				ExtendedBIR extendedBir = new ExtendedBIR();
+				extendedBir.setBdb(bir.getBdb());
+				extendedBir.setBdbInfo(bir.getBdbInfo());
+				extendedBir.setBirInfo(bir.getBirInfo());
+				extendedBir.setCbeffversion(bir.getCbeffversion());
+				extendedBir.setVersion(bir.getVersion());
+				extendedBir.setOthers(bir.getOthers());
+				extendedBir.setSb(bir.getSb());
+				extendedBir.setSbInfo(bir.getSbInfo());
+				segments.add(extendedBir);
 
 				try {
 					String token = BiometricsSignatureHelper.extractJWTToken(bir);
